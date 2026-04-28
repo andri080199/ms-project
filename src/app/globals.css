@@ -1,0 +1,564 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * === Liquid Glass Design Tokens ===
+ * Mirrored in src/lib/theme.ts. Keep both in sync.
+ * RGB triplets so consumers can compose alpha:
+ *   color: rgb(var(--color-primary) / 0.5);
+ *   bg-primary/30 (Tailwind)
+ */
+:root {
+  /* Primary scale — teal/mint (derived from #1F6F5F · #2FA084 · #6FCF97) */
+  --color-primary-50: 232 245 240;
+  --color-primary-100: 201 234 217;
+  --color-primary-200: 168 221 194;
+  --color-primary-300: 111 207 151;
+  --color-primary-400: 74 186 144;
+  --color-primary-500: 47 160 132;
+  --color-primary-600: 37 136 112;
+  --color-primary-700: 31 111 95;
+  --color-primary-800: 24 85 72;
+  --color-primary-900: 15 60 51;
+
+  --color-primary: var(--color-primary-500);
+  --color-primary-light: var(--color-primary-300);
+  --color-primary-dark: var(--color-primary-700);
+
+  /* Accents — kept tonal within the teal family (used by aurora & charts) */
+  --color-accent-fuchsia: 47 160 132;   /* repurposed: medium teal */
+  --color-accent-cyan: 110 199 192;     /* light teal-cyan */
+  --color-accent-mint: 111 207 151;     /* mint */
+
+  /* Background / canvas — light off-white with mint tint */
+  --color-bg-base: 238 238 238;
+  --color-bg-canvas-1: 244 248 246;
+  --color-bg-canvas-2: 232 241 237;
+  --color-bg-canvas-3: 220 233 227;
+  --color-bg-elevated: 19 61 52;       /* used for dark frosted card tint */
+  --color-bg-overlay: 5 15 13;
+
+  /* Text — light tones live INSIDE dark glass cards;
+   * `on-canvas` tones are used directly on the light body. */
+  --color-text-primary: 238 238 238;        /* light: text inside .glass */
+  --color-text-secondary: 197 208 204;      /* light secondary inside .glass */
+  --color-text-muted: 138 163 156;          /* light muted inside .glass */
+  --color-text-on-canvas: 15 60 51;         /* dark: text directly on body */
+  --color-text-on-canvas-muted: 90 116 107; /* dark muted on body */
+  --color-text-inverse: 10 31 26;
+
+  /* Status — muted to stay tonally coherent with teal */
+  --color-success: 47 160 132;
+  --color-warning: 217 158 80;
+  --color-danger: 200 92 92;
+  --color-info: 60 156 150;
+
+  /* Glass surfaces — dark teal frosted on light body */
+  --glass-tint: 19 61 52;
+  --glass-bg-soft: rgb(var(--glass-tint) / 0.55);
+  --glass-bg: rgb(var(--glass-tint) / 0.78);
+  --glass-bg-strong: rgb(var(--glass-tint) / 0.9);
+  --glass-border: rgb(var(--glass-tint) / 0.45);
+  --glass-border-strong: rgb(var(--glass-tint) / 0.6);
+  --glass-highlight: rgb(255 255 255 / 0.18);
+  --glass-shadow: 0 16px 48px -12px rgba(15, 60, 51, 0.28);
+  --glass-shadow-elevated: 0 24px 64px -16px rgba(15, 60, 51, 0.4);
+  --glass-blur: blur(28px) saturate(200%);
+  --glass-blur-soft: blur(16px) saturate(170%);
+  --glass-radius: 20px;
+
+  /* Rings */
+  --ring-primary: rgb(var(--color-primary) / 0.45);
+
+  /* Brand gradients (avatars, action chips) — dark teal → mint */
+  --gradient-brand: linear-gradient(135deg, rgb(var(--color-primary-700)), rgb(var(--color-primary-300)));
+  --gradient-brand-soft: linear-gradient(135deg, rgb(var(--color-primary-700) / 0.28), rgb(var(--color-primary-300) / 0.28));
+  --gradient-brand-border: rgb(var(--color-primary-500) / 0.35);
+
+  /* Legacy aliases (kept until all callers migrate) */
+  --text-primary: rgb(var(--color-text-primary));
+  --text-secondary: rgb(var(--color-text-secondary));
+  --accent: rgb(var(--color-primary-light));
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  color: rgb(var(--color-text-on-canvas));
+  font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  background-color: rgb(var(--color-bg-base));
+  background-image:
+    radial-gradient(ellipse at 50% -10%, rgb(var(--color-primary-300) / 0.32), transparent 60%),
+    radial-gradient(ellipse at 20% 100%, rgb(var(--color-primary-500) / 0.18), transparent 55%),
+    radial-gradient(ellipse at 80% 100%, rgb(var(--color-accent-cyan) / 0.18), transparent 55%),
+    linear-gradient(140deg, rgb(var(--color-bg-canvas-1)) 0%, rgb(var(--color-bg-canvas-2)) 50%, rgb(var(--color-bg-canvas-3)) 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.aurora-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.aurora {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(120px);
+  opacity: 0.55;
+  will-change: transform;
+}
+
+.aurora-1 {
+  width: 520px;
+  height: 520px;
+  background: rgb(var(--color-primary-300));
+  top: -120px;
+  left: -120px;
+  opacity: 0.35;
+  animation: auroraDrift 22s ease-in-out infinite;
+}
+
+.aurora-2 {
+  width: 460px;
+  height: 460px;
+  background: rgb(var(--color-primary-500));
+  bottom: -120px;
+  right: -80px;
+  opacity: 0.3;
+  animation: auroraDrift 26s ease-in-out infinite reverse;
+}
+
+.aurora-3 {
+  width: 380px;
+  height: 380px;
+  background: rgb(var(--color-accent-cyan));
+  top: 45%;
+  left: 55%;
+  opacity: 0.22;
+  animation: auroraDrift 30s ease-in-out infinite;
+}
+
+@keyframes auroraDrift {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(40px, -60px) scale(1.1);
+  }
+  66% {
+    transform: translate(-30px, 40px) scale(0.95);
+  }
+}
+
+/* Liquid Glass surface — bright top edge, frosted body.
+ * Drives bg from --glass-bg-strong → --glass-bg so token tweaks cascade.
+ * Wrapped in @layer components so Tailwind utilities (sticky, fixed, absolute, etc.)
+ * win at equal specificity. */
+@layer components {
+  .glass {
+    background:
+      linear-gradient(180deg, var(--glass-bg-strong) 0%, var(--glass-bg) 100%);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--glass-radius);
+    color: rgb(var(--color-text-primary));
+    box-shadow:
+      var(--glass-shadow),
+      inset 0 1px 0 0 var(--glass-highlight),
+      inset 0 -1px 0 0 rgb(0 0 0 / 0.18);
+  }
+
+  .glass-hover {
+    transition:
+      transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 0.25s ease,
+      border-color 0.25s ease;
+  }
+  .glass-hover:hover {
+    transform: translateY(-2px);
+    border-color: var(--ring-primary);
+    box-shadow:
+      var(--glass-shadow-elevated),
+      inset 0 1px 0 0 var(--glass-highlight),
+      inset 0 -1px 0 0 rgb(0 0 0 / 0.12);
+  }
+}
+
+/* Muted text adapts to context: dark on body, light inside dark glass surfaces.
+ * !important so it wins against AntD CSS-in-JS that may load after globals.css. */
+.text-muted {
+  color: rgb(var(--color-text-on-canvas-muted)) !important;
+}
+.glass .text-muted,
+.ant-modal .text-muted,
+.ant-drawer-content .text-muted,
+.ant-popover-inner .text-muted {
+  color: rgb(var(--color-text-secondary)) !important;
+}
+
+.page-enter {
+  animation: fadeUp 0.45s ease-out both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger > * {
+  animation: fadeUp 0.45s ease-out both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 50ms; }
+.stagger > *:nth-child(3) { animation-delay: 100ms; }
+.stagger > *:nth-child(4) { animation-delay: 150ms; }
+.stagger > *:nth-child(5) { animation-delay: 200ms; }
+.stagger > *:nth-child(6) { animation-delay: 250ms; }
+.stagger > *:nth-child(7) { animation-delay: 300ms; }
+.stagger > *:nth-child(8) { animation-delay: 350ms; }
+
+/* === Ant Design overrides for Liquid Glass === */
+.ant-layout,
+.ant-layout-content,
+.ant-layout-sider,
+.ant-layout-header {
+  background: transparent !important;
+}
+
+/* Tables — assumed to live inside dark glass cards, so text stays light */
+.ant-table-wrapper .ant-table {
+  background: transparent !important;
+  color: rgb(var(--color-text-primary)) !important;
+}
+.ant-table-wrapper .ant-table-thead > tr > th {
+  background: rgb(255 255 255 / 0.06) !important;
+  color: rgb(var(--color-text-primary)) !important;
+  border-bottom: 1px solid rgb(255 255 255 / 0.18) !important;
+}
+.ant-table-wrapper .ant-table-tbody > tr > td {
+  background: transparent !important;
+  color: rgb(var(--color-text-primary)) !important;
+  border-bottom: 1px solid rgb(255 255 255 / 0.08) !important;
+}
+.ant-table-wrapper .ant-table-tbody > tr:hover > td {
+  background: rgb(255 255 255 / 0.06) !important;
+}
+
+/* Tabs — sits directly on light body. Use dark text. */
+.ant-tabs .ant-tabs-tab {
+  color: rgb(var(--color-text-on-canvas-muted)) !important;
+}
+.ant-tabs .ant-tabs-tab:hover {
+  color: rgb(var(--color-primary-700)) !important;
+}
+.ant-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: rgb(var(--color-primary-700)) !important;
+}
+.ant-tabs .ant-tabs-ink-bar {
+  background: rgb(var(--color-primary-500)) !important;
+}
+.ant-tabs > .ant-tabs-nav::before {
+  border-bottom-color: rgb(var(--color-primary-700) / 0.15) !important;
+}
+/* Tabs inside a dark glass card revert to light */
+.glass .ant-tabs .ant-tabs-tab {
+  color: rgb(var(--color-text-secondary)) !important;
+}
+.glass .ant-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: rgb(var(--color-primary-300)) !important;
+}
+
+.ant-modal .ant-modal-content,
+.ant-drawer .ant-drawer-content {
+  background:
+    linear-gradient(180deg, var(--glass-bg-strong), var(--glass-bg)),
+    rgb(var(--color-bg-elevated) / 0.85) !important;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--glass-radius) !important;
+  box-shadow:
+    var(--glass-shadow-elevated),
+    inset 0 1px 0 0 var(--glass-highlight) !important;
+}
+
+/* Inputs on the light body — crisp white with teal accent border */
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-input-number,
+.ant-input-number-affix-wrapper,
+.ant-picker,
+.ant-select-selector,
+.ant-select-multiple .ant-select-selector {
+  background: rgb(255 255 255 / 0.95) !important;
+  border-color: rgb(var(--color-primary-700) / 0.35) !important;
+  color: rgb(var(--color-text-on-canvas)) !important;
+  box-shadow: 0 1px 2px rgba(15, 60, 51, 0.04) !important;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease !important;
+}
+.ant-input::placeholder,
+.ant-input-affix-wrapper input::placeholder,
+.ant-select-selection-placeholder,
+.ant-picker-input > input::placeholder {
+  color: rgb(var(--color-text-on-canvas-muted)) !important;
+  opacity: 1 !important;
+}
+.ant-input-affix-wrapper .anticon {
+  color: rgb(var(--color-primary-700) / 0.65) !important;
+}
+
+/* Hover */
+.ant-input:hover,
+.ant-picker:hover,
+.ant-input-affix-wrapper:hover,
+.ant-input-number:hover,
+.ant-select:not(.ant-select-disabled):hover .ant-select-selector {
+  border-color: rgb(var(--color-primary-500)) !important;
+  background: rgb(255 255 255) !important;
+}
+
+/* Focus — teal ring */
+.ant-input:focus,
+.ant-input-focused,
+.ant-input-affix-wrapper-focused,
+.ant-picker-focused,
+.ant-input-number-focused,
+.ant-select-focused .ant-select-selector {
+  border-color: rgb(var(--color-primary-500)) !important;
+  box-shadow: 0 0 0 3px rgb(var(--color-primary-500) / 0.18) !important;
+  background: rgb(255 255 255) !important;
+}
+
+/* Input.Search — brand gradient button */
+.ant-input-search .ant-input-search-button {
+  background: var(--gradient-brand) !important;
+  border-color: rgb(var(--color-primary-700)) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 6px rgb(var(--color-primary-700) / 0.25) !important;
+}
+.ant-input-search .ant-input-search-button:hover {
+  filter: brightness(1.08);
+}
+.ant-input-search .ant-input-search-button .anticon {
+  color: #fff !important;
+}
+/* Seam between input and search button */
+.ant-input-search > .ant-input-wrapper > .ant-input-affix-wrapper:not(:last-child),
+.ant-input-search > .ant-input-wrapper > .ant-input:not(:last-child) {
+  border-right-color: rgb(var(--color-primary-700) / 0.35) !important;
+}
+
+/* Inputs inside dark glass surfaces — translucent white frosted, light text */
+.glass .ant-input,
+.glass .ant-input-affix-wrapper,
+.glass .ant-input-number,
+.glass .ant-input-number-affix-wrapper,
+.glass .ant-picker,
+.glass .ant-select-selector,
+.glass .ant-select-multiple .ant-select-selector,
+.ant-modal .ant-input,
+.ant-modal .ant-input-affix-wrapper,
+.ant-modal .ant-input-number,
+.ant-modal .ant-input-number-affix-wrapper,
+.ant-modal .ant-picker,
+.ant-modal .ant-select-selector,
+.ant-drawer-content .ant-input,
+.ant-drawer-content .ant-input-affix-wrapper,
+.ant-drawer-content .ant-picker,
+.ant-drawer-content .ant-select-selector {
+  background: rgb(255 255 255 / 0.08) !important;
+  border-color: rgb(255 255 255 / 0.22) !important;
+  color: rgb(var(--color-text-primary)) !important;
+}
+.glass .ant-input::placeholder,
+.glass .ant-input-affix-wrapper input::placeholder,
+.glass .ant-select-selection-placeholder,
+.glass .ant-picker-input > input::placeholder,
+.ant-modal .ant-input::placeholder,
+.ant-modal .ant-input-affix-wrapper input::placeholder,
+.ant-modal .ant-select-selection-placeholder,
+.ant-modal .ant-picker-input > input::placeholder,
+.ant-drawer-content .ant-input::placeholder,
+.ant-drawer-content .ant-input-affix-wrapper input::placeholder,
+.ant-drawer-content .ant-select-selection-placeholder,
+.ant-drawer-content .ant-picker-input > input::placeholder {
+  color: rgb(var(--color-text-muted)) !important;
+  opacity: 1 !important;
+}
+.glass .ant-input-affix-wrapper .anticon,
+.ant-modal .ant-input-affix-wrapper .anticon,
+.ant-drawer-content .ant-input-affix-wrapper .anticon {
+  color: rgb(var(--color-text-muted)) !important;
+}
+
+/* Form labels — context-aware */
+.ant-form-item-label > label {
+  color: rgb(var(--color-text-on-canvas)) !important;
+}
+.glass .ant-form-item-label > label,
+.ant-modal .ant-form-item-label > label,
+.ant-drawer-content .ant-form-item-label > label {
+  color: rgb(var(--color-text-primary)) !important;
+}
+
+/* Status pills (Liquid Glass tinted) */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.status-submitted {
+  background: rgb(var(--color-warning) / 0.15);
+  color: rgb(var(--color-warning));
+  border-color: rgb(var(--color-warning) / 0.4);
+}
+.status-spv {
+  background: rgb(var(--color-info) / 0.15);
+  color: rgb(var(--color-info));
+  border-color: rgb(var(--color-info) / 0.4);
+}
+.status-hr {
+  background: rgb(var(--color-accent-mint) / 0.15);
+  color: rgb(var(--color-accent-mint));
+  border-color: rgb(var(--color-accent-mint) / 0.4);
+}
+.status-done {
+  background: rgb(var(--color-success) / 0.15);
+  color: rgb(var(--color-success));
+  border-color: rgb(var(--color-success) / 0.4);
+}
+.status-rejected {
+  background: rgb(var(--color-danger) / 0.15);
+  color: rgb(var(--color-danger));
+  border-color: rgb(var(--color-danger) / 0.4);
+}
+.status-draft {
+  background: rgb(var(--color-text-muted) / 0.18);
+  color: rgb(var(--color-text-secondary));
+  border-color: rgb(var(--color-text-muted) / 0.35);
+}
+.status-cancelled {
+  background: rgb(var(--color-text-muted) / 0.2);
+  color: rgb(var(--color-text-secondary));
+  border-color: rgb(var(--color-text-muted) / 0.4);
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--color-primary-700) / 0.25);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--color-primary-700) / 0.4);
+}
+
+/* Segmented — teal-accented on light body */
+.ant-segmented {
+  background: rgb(255 255 255 / 0.7) !important;
+  border: 1px solid rgb(var(--color-primary-700) / 0.18) !important;
+  border-radius: 10px !important;
+  padding: 3px !important;
+  box-shadow: 0 1px 2px rgba(15, 60, 51, 0.04) !important;
+}
+.ant-segmented .ant-segmented-item {
+  color: rgb(var(--color-text-on-canvas-muted)) !important;
+  border-radius: 7px !important;
+  transition: color 0.18s ease !important;
+}
+.ant-segmented .ant-segmented-item:hover:not(.ant-segmented-item-selected) {
+  color: rgb(var(--color-primary-700)) !important;
+}
+.ant-segmented .ant-segmented-item-selected {
+  color: #fff !important;
+}
+.ant-segmented .ant-segmented-item-selected .ant-segmented-item-label {
+  color: #fff !important;
+}
+.ant-segmented .ant-segmented-thumb,
+.ant-segmented .ant-segmented-item-selected {
+  background: var(--gradient-brand) !important;
+  box-shadow: 0 2px 6px rgb(var(--color-primary-700) / 0.25) !important;
+}
+/* Segmented inside dark glass surfaces */
+.glass .ant-segmented,
+.ant-modal .ant-segmented,
+.ant-drawer-content .ant-segmented {
+  background: rgb(255 255 255 / 0.08) !important;
+  border-color: rgb(var(--color-primary-300) / 0.25) !important;
+}
+.glass .ant-segmented .ant-segmented-item,
+.ant-modal .ant-segmented .ant-segmented-item,
+.ant-drawer-content .ant-segmented .ant-segmented-item {
+  color: rgb(var(--color-text-secondary)) !important;
+}
+.glass .ant-segmented .ant-segmented-item:hover:not(.ant-segmented-item-selected),
+.ant-modal .ant-segmented .ant-segmented-item:hover:not(.ant-segmented-item-selected),
+.ant-drawer-content .ant-segmented .ant-segmented-item:hover:not(.ant-segmented-item-selected) {
+  color: rgb(var(--color-primary-300)) !important;
+}
+
+/* Pagination — teal-accented on light body */
+.ant-pagination .ant-pagination-item,
+.ant-pagination .ant-pagination-prev .ant-pagination-item-link,
+.ant-pagination .ant-pagination-next .ant-pagination-item-link {
+  background: rgb(255 255 255 / 0.9) !important;
+  border: 1px solid rgb(var(--color-primary-700) / 0.2) !important;
+  color: rgb(var(--color-text-on-canvas)) !important;
+  border-radius: 8px !important;
+  transition: border-color 0.18s ease, background 0.18s ease !important;
+}
+.ant-pagination .ant-pagination-item a {
+  color: rgb(var(--color-text-on-canvas)) !important;
+}
+.ant-pagination .ant-pagination-item:hover,
+.ant-pagination .ant-pagination-prev:hover .ant-pagination-item-link,
+.ant-pagination .ant-pagination-next:hover .ant-pagination-item-link {
+  border-color: rgb(var(--color-primary-500)) !important;
+  background: rgb(255 255 255) !important;
+}
+.ant-pagination .ant-pagination-item:hover a {
+  color: rgb(var(--color-primary-700)) !important;
+}
+.ant-pagination .ant-pagination-item-active {
+  background: var(--gradient-brand) !important;
+  border-color: rgb(var(--color-primary-700)) !important;
+  box-shadow: 0 2px 6px rgb(var(--color-primary-700) / 0.25) !important;
+}
+.ant-pagination .ant-pagination-item-active a {
+  color: #fff !important;
+}
+.ant-pagination .ant-pagination-item-ellipsis,
+.ant-pagination .ant-pagination-jump-prev .ant-pagination-item-link-icon,
+.ant-pagination .ant-pagination-jump-next .ant-pagination-item-link-icon {
+  color: rgb(var(--color-primary-700)) !important;
+}
+.ant-pagination .ant-pagination-disabled .ant-pagination-item-link,
+.ant-pagination .ant-pagination-disabled:hover .ant-pagination-item-link {
+  background: rgb(255 255 255 / 0.5) !important;
+  border-color: rgb(var(--color-primary-700) / 0.1) !important;
+  color: rgb(var(--color-text-on-canvas-muted)) !important;
+}

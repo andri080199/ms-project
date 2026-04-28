@@ -1,0 +1,256 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  EMPLOYEE
+  SPV
+  HR
+  ADMIN
+}
+
+enum RequestStatus {
+  DRAFT
+  SUBMITTED
+  SPV_APPROVED
+  HR_APPROVED
+  REJECTED
+  DONE
+  CANCELLED
+}
+
+enum ReimbursementCategory {
+  OFFICE
+  HOTEL
+  TOLL
+  TRANSPORTATION
+  MEAL
+  OTHER
+}
+
+enum TripType {
+  WEEKDAY
+  WEEKEND
+}
+
+enum ApprovalAction {
+  APPROVE
+  REJECT
+}
+
+enum ApprovalStage {
+  SPV
+  HR
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum BloodType {
+  A
+  B
+  AB
+  O
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  PERSONAL
+  MATERNITY
+  UNPAID
+  OTHER
+}
+
+model Position {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  baseRole   Role
+  department String?
+  users      User[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model User {
+  id             String                 @id @default(cuid())
+  employeeId     String?                @unique
+  email          String                 @unique
+  name           String
+  password       String
+  role           Role                   @default(EMPLOYEE)
+  isSuperAdmin   Boolean                @default(false)
+  phone          String?
+  department     String?
+  positionId     String?
+  position       Position?              @relation(fields: [positionId], references: [id])
+  spvId          String?
+  spv            User?                  @relation("Supervision", fields: [spvId], references: [id])
+  subordinates   User[]                 @relation("Supervision")
+
+  additionalPhone    String?
+  placeOfBirth       String?
+  birthdate          DateTime?
+  gender             Gender?
+  maritalStatus      MaritalStatus?
+  bloodType          BloodType?
+  religion           String?
+  nik                String?
+  idAddress          String?
+  postalCode         String?
+  residentialAddress String?
+  passportNumber     String?
+  passportExpiry     DateTime?
+
+  overtimes      OvertimeRequest[]
+  reimbursements ReimbursementRequest[]
+  trips          BusinessTripRequest[]
+  leaves         LeaveRequest[]
+  approvals      ApprovalHistory[]      @relation("Approver")
+  attachments    Attachment[]
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+}
+
+model Attachment {
+  id         String   @id @default(cuid())
+  filename   String
+  mimeType   String
+  size       Int
+  data       Bytes
+  uploaderId String
+  uploader   User     @relation(fields: [uploaderId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@index([uploaderId])
+}
+
+model OvertimeRequest {
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id])
+  date            DateTime
+  startTime       DateTime
+  endTime         DateTime
+  durationMinutes Int
+  reason          String
+  attachmentUrl   String?
+  status          RequestStatus     @default(SUBMITTED)
+  spvApprovedAt   DateTime?
+  hrApprovedAt    DateTime?
+  rejectedReason  String?
+  approvals       ApprovalHistory[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model ReimbursementRequest {
+  id             String              @id @default(cuid())
+  userId         String
+  user           User                @relation(fields: [userId], references: [id])
+  totalAmount    Int
+  status         RequestStatus       @default(SUBMITTED)
+  hrApprovedAt   DateTime?
+  rejectedReason String?
+  items          ReimbursementItem[]
+  approvals      ApprovalHistory[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model ReimbursementItem {
+  id              String                @id @default(cuid())
+  requestId       String
+  request         ReimbursementRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  category        ReimbursementCategory
+  amount          Int
+  transactionDate DateTime
+  description     String
+  receiptUrl      String?
+}
+
+model BusinessTripRequest {
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id])
+  startDate       DateTime
+  endDate         DateTime
+  destination     String
+  purpose         String
+  tripType        TripType
+  attachmentUrl   String?
+  status          RequestStatus     @default(SUBMITTED)
+  spvApprovedAt   DateTime?
+  hrApprovedAt    DateTime?
+  rejectedReason  String?
+  approvals       ApprovalHistory[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model LeaveRequest {
+  id             String            @id @default(cuid())
+  userId         String
+  user           User              @relation(fields: [userId], references: [id])
+  startDate      DateTime
+  endDate        DateTime
+  totalDays      Int
+  leaveType      LeaveType
+  reason         String
+  attachmentUrl  String?
+  status         RequestStatus     @default(SUBMITTED)
+  spvApprovedAt  DateTime?
+  rejectedReason String?
+  approvals      ApprovalHistory[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model ApprovalHistory {
+  id              String                @id @default(cuid())
+  approverId      String
+  approver        User                  @relation("Approver", fields: [approverId], references: [id])
+  stage           ApprovalStage
+  action          ApprovalAction
+  comment         String?
+  overtimeId      String?
+  overtime        OvertimeRequest?      @relation(fields: [overtimeId], references: [id])
+  reimbursementId String?
+  reimbursement   ReimbursementRequest? @relation(fields: [reimbursementId], references: [id])
+  tripId          String?
+  trip            BusinessTripRequest?  @relation(fields: [tripId], references: [id])
+  leaveId         String?
+  leave           LeaveRequest?         @relation(fields: [leaveId], references: [id])
+  createdAt       DateTime              @default(now())
+
+  @@index([overtimeId])
+  @@index([reimbursementId])
+  @@index([tripId])
+  @@index([leaveId])
+}
