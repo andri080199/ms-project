@@ -64,7 +64,7 @@ function valueOrDash(v: string | null | undefined): string {
 }
 
 export default function ProfilePage() {
-  const { data: session } = useSession();
+  const { data: session, update: updateSession } = useSession();
   const canEdit = !!session?.user?.isSuperAdmin;
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -109,6 +109,7 @@ export default function ProfilePage() {
       message.success(t('profile.msgUpdated'));
       setProfile(json.data);
       setMode('view');
+      await updateSession();
     } finally {
       setSaving(false);
     }

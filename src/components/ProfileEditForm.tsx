@@ -3,7 +3,7 @@
 import { Button, DatePicker, Form, Input, Select, Typography } from 'antd';
 import type { FormInstance } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import GlassCard from '@/components/GlassCard';
 import type { BloodType, Gender, MaritalStatus } from '@prisma/client';
 import { useT } from '@/lib/i18n/provider';
@@ -100,7 +100,7 @@ type Props = {
   hideIdentityFields?: boolean;
   hideFooter?: boolean;
   formId?: string;
-  externalForm?: FormInstance<ProfileFormValues>;
+  formRef?: React.MutableRefObject<FormInstance<ProfileFormValues> | null>;
 };
 
 export default function ProfileEditForm({
@@ -113,19 +113,25 @@ export default function ProfileEditForm({
   hideIdentityFields = false,
   hideFooter = false,
   formId,
-  externalForm,
+  formRef,
 }: Props) {
   const t = useT();
-  const [internalForm] = Form.useForm<ProfileFormValues>();
-  const form = externalForm ?? internalForm;
+  const [form] = Form.useForm<ProfileFormValues>();
   const birthdateWatch = Form.useWatch('birthdate', form);
   const formAge = birthdateWatch && birthdateWatch.isValid() ? dayjs().diff(birthdateWatch, 'year') : null;
   const initialValues = useMemo(() => profileToFormValues(profile), [profile]);
+  const didInit = useRef(false);
+
   useEffect(() => {
-    if (externalForm) {
-      externalForm.setFieldsValue(initialValues);
+    if (formRef) formRef.current = form;
+  }, [form, formRef]);
+
+  useEffect(() => {
+    if (didInit.current) {
+      form.setFieldsValue(initialValues);
     }
-  }, [externalForm, initialValues]);
+    didInit.current = true;
+  }, [form, initialValues]);
   const useCards = variant === 'page';
   const buttonLabel = submitLabel ?? t('profile.saveButton');
 

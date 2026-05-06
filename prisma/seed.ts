@@ -14,15 +14,51 @@ async function main() {
   await prisma.user.deleteMany();
   await prisma.position.deleteMany();
 
-  const positions = await Promise.all([
-    prisma.position.create({ data: { name: 'Super Admin', baseRole: Role.ADMIN } }),
-    prisma.position.create({ data: { name: 'Manager HR', baseRole: Role.HR } }),
-    prisma.position.create({ data: { name: 'Supervisor Engineering', baseRole: Role.SPV } }),
-    prisma.position.create({ data: { name: 'Supervisor Marketing', baseRole: Role.SPV } }),
-    prisma.position.create({ data: { name: 'Staff Engineering', baseRole: Role.EMPLOYEE } }),
-    prisma.position.create({ data: { name: 'Staff Marketing', baseRole: Role.EMPLOYEE } }),
-  ]);
-  const [posAdmin, posHr, posSpvEng, posSpvMkt, posStaffEng, posStaffMkt] = positions;
+  const positionSeed: Array<{ name: string; baseRole: Role; department: string }> = [
+    // Board
+    { name: 'CEO', baseRole: Role.ADMIN, department: 'Board' },
+    { name: 'CTO', baseRole: Role.ADMIN, department: 'Board' },
+    { name: 'COO', baseRole: Role.ADMIN, department: 'Board' },
+    // Technology
+    { name: 'Engineering Manager', baseRole: Role.SPV, department: 'Technology' },
+    { name: 'Solution Manager', baseRole: Role.SPV, department: 'Technology' },
+    { name: 'Lead Product Manager', baseRole: Role.SPV, department: 'Technology' },
+    { name: 'Product Manager', baseRole: Role.SPV, department: 'Technology' },
+    { name: 'Sr. Software Engineer', baseRole: Role.EMPLOYEE, department: 'Technology' },
+    { name: 'Sr. AI Software Engineer', baseRole: Role.EMPLOYEE, department: 'Technology' },
+    { name: 'AI Software Engineer', baseRole: Role.EMPLOYEE, department: 'Technology' },
+    { name: 'Full Stack Engineer', baseRole: Role.EMPLOYEE, department: 'Technology' },
+    { name: 'Solution Engineer', baseRole: Role.EMPLOYEE, department: 'Technology' },
+    { name: 'Associate Software Engineer', baseRole: Role.EMPLOYEE, department: 'Technology' },
+    // OPS - Project
+    { name: 'Technical Project Manager Supervisor', baseRole: Role.SPV, department: 'OPS - Project' },
+    { name: 'Technical Project Manager', baseRole: Role.SPV, department: 'OPS - Project' },
+    { name: 'Jr. Technical Project Manager', baseRole: Role.EMPLOYEE, department: 'OPS - Project' },
+    { name: 'Jr. TechOps', baseRole: Role.EMPLOYEE, department: 'OPS - Project' },
+    // OPS - General Support
+    { name: 'FAT Manager', baseRole: Role.SPV, department: 'OPS - General Support' },
+    { name: 'Sr. FAT', baseRole: Role.EMPLOYEE, department: 'OPS - General Support' },
+    { name: 'OB', baseRole: Role.EMPLOYEE, department: 'OPS - General Support' },
+    // People & Culture
+    { name: 'People & GA Officer', baseRole: Role.HR, department: 'People & Culture' },
+  ];
+
+  const positions = await Promise.all(
+    positionSeed.map((p) => prisma.position.create({ data: p })),
+  );
+  const positionByName = new Map(positions.map((p) => [p.name, p]));
+  const pos = (name: string) => {
+    const p = positionByName.get(name);
+    if (!p) throw new Error(`Position "${name}" missing in seed`);
+    return p;
+  };
+
+  const posAdmin = pos('CTO');
+  const posHr = pos('People & GA Officer');
+  const posSpvEng = pos('Engineering Manager');
+  const posSpvMkt = pos('Technical Project Manager Supervisor');
+  const posStaffEng = pos('Sr. Software Engineer');
+  const posStaffMkt = pos('Jr. Technical Project Manager');
 
   const hashAdmin = await bcrypt.hash('admin123', 10);
   const hashHr = await bcrypt.hash('hr123', 10);
@@ -36,7 +72,7 @@ async function main() {
       password: hashAdmin,
       role: Role.ADMIN,
       phone: '081200000001',
-      department: 'IT',
+      department: 'Board',
       positionId: posAdmin.id,
     },
   });
@@ -48,7 +84,7 @@ async function main() {
       password: hashHr,
       role: Role.HR,
       phone: '081200000002',
-      department: 'Human Resources',
+      department: 'People & Culture',
       positionId: posHr.id,
     },
   });
@@ -60,7 +96,7 @@ async function main() {
       password: hashSpv,
       role: Role.SPV,
       phone: '081200000003',
-      department: 'Engineering',
+      department: 'Technology',
       positionId: posSpvEng.id,
     },
   });
@@ -72,7 +108,7 @@ async function main() {
       password: hashSpv,
       role: Role.SPV,
       phone: '081200000004',
-      department: 'Marketing',
+      department: 'OPS - Project',
       positionId: posSpvMkt.id,
     },
   });
@@ -84,7 +120,7 @@ async function main() {
       password: hashEmp,
       role: Role.EMPLOYEE,
       phone: '081200000005',
-      department: 'Engineering',
+      department: 'Technology',
       spvId: spv1.id,
       positionId: posStaffEng.id,
     },
@@ -97,7 +133,7 @@ async function main() {
       password: hashEmp,
       role: Role.EMPLOYEE,
       phone: '081200000006',
-      department: 'Engineering',
+      department: 'Technology',
       spvId: spv1.id,
       positionId: posStaffEng.id,
     },
@@ -110,7 +146,7 @@ async function main() {
       password: hashEmp,
       role: Role.EMPLOYEE,
       phone: '081200000007',
-      department: 'Marketing',
+      department: 'OPS - Project',
       spvId: spv2.id,
       positionId: posStaffMkt.id,
     },
@@ -123,7 +159,7 @@ async function main() {
       password: hashEmp,
       role: Role.EMPLOYEE,
       phone: '081200000008',
-      department: 'Marketing',
+      department: 'OPS - Project',
       spvId: spv2.id,
       positionId: posStaffMkt.id,
     },

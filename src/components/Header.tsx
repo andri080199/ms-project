@@ -86,6 +86,24 @@ export default function Header({ onToggleSidebar }: { onToggleSidebar?: () => vo
           menu={{
             items: [
               {
+                key: 'user-info',
+                label: (
+                  <div className="py-1 sm:hidden">
+                    <div className="text-sm font-semibold leading-tight" style={{ color: 'rgb(var(--color-text-primary))' }}>
+                      {user?.name ?? '—'}
+                    </div>
+                    <div className="text-xs leading-tight mt-0.5" style={{ color: 'rgb(var(--color-text-muted))' }}>
+                      {subtitle}
+                    </div>
+                  </div>
+                ),
+                className: 'sm:hidden !cursor-default',
+              },
+              {
+                type: 'divider',
+                className: 'sm:hidden',
+              },
+              {
                 key: 'signout',
                 icon: <LogoutOutlined />,
                 label: t('header.signOut'),

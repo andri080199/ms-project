@@ -3,7 +3,7 @@
 import { App, Avatar, Button, Empty, Form, Input, Modal, Popconfirm, Select, Skeleton, Spin, Switch, Tabs, Tag, Tooltip, Typography } from 'antd';
 import type { FormInstance } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, LockOutlined, MailOutlined, PhoneOutlined, IdcardOutlined, ApartmentOutlined, UserOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import GlassCard from '@/components/GlassCard';
 import ProfileEditForm, {
   formValuesToApiBody,
@@ -62,7 +62,7 @@ export default function UsersPage() {
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState('');
   const [form] = Form.useForm<FormValues>();
-  const [profileForm] = Form.useForm<ProfileFormValues>();
+  const profileFormRef = useRef<FormInstance<ProfileFormValues> | null>(null);
   const { message } = App.useApp();
 
   const [profileData, setProfileData] = useState<ProfileEditable | null>(null);
@@ -168,7 +168,7 @@ export default function UsersPage() {
     if (editing && profileData) {
       let profileValues: ProfileFormValues;
       try {
-        profileValues = await profileForm.validateFields();
+        profileValues = await profileFormRef.current!.validateFields();
       } catch {
         setActiveTab('profil');
         return;
@@ -421,7 +421,7 @@ export default function UsersPage() {
                     key={editing.id}
                     profile={profileData}
                     saving={false}
-                    externalForm={profileForm}
+                    formRef={profileFormRef}
                     onSubmit={() => {}}
                     onCancel={() => setOpen(false)}
                     variant="modal"

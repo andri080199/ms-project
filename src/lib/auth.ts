@@ -72,11 +72,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (trigger === 'update' && token.id) {
         const fresh = await prisma.user.findUnique({
           where: { id: token.id },
-          select: { role: true, isSuperAdmin: true },
+          select: { role: true, isSuperAdmin: true, name: true, email: true },
         });
         if (fresh) {
           token.role = fresh.role;
           token.isSuperAdmin = fresh.isSuperAdmin;
+          token.name = fresh.name;
+          token.email = fresh.email ?? token.email;
         }
       }
       return token;
