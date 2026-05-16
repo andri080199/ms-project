@@ -1,9 +1,9 @@
 'use client';
 
-import { App, Button, DatePicker, Form, Input, Radio } from 'antd';
+import { App, Button, DatePicker, Form, Input, Select } from 'antd';
 import { type Dayjs } from 'dayjs';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { isWeekendRange } from '@/lib/utils';
 import UploadField from '@/components/UploadField';
 import { useT } from '@/lib/i18n/provider';
@@ -22,14 +22,23 @@ export default function BusinessTripForm() {
   const router = useRouter();
   const { message } = App.useApp();
   const t = useT();
-  const range = Form.useWatch('range', form);
 
-  useEffect(() => {
-    if (range && range[0] && range[1]) {
-      const auto = isWeekendRange(range[0].toDate(), range[1].toDate()) ? 'WEEKEND' : 'WEEKDAY';
+  const tripTypeOptions = useMemo(
+    () => [
+      { value: 'WEEKDAY', label: t('tripType.WEEKDAY') },
+      { value: 'WEEKEND', label: t('tripType.WEEKEND') },
+    ],
+    [t],
+  );
+
+  function handleValuesChange(changed: Partial<FormValues>) {
+    if (!changed.range) return;
+    const [start, end] = changed.range;
+    if (start && end) {
+      const auto = isWeekendRange(start.toDate(), end.toDate()) ? 'WEEKEND' : 'WEEKDAY';
       form.setFieldValue('tripType', auto);
     }
-  }, [range, form]);
+  }
 
   async function onFinish(values: FormValues) {
     const [start, end] = values.range;
@@ -66,13 +75,23 @@ export default function BusinessTripForm() {
   }
 
   return (
-    <Form<FormValues> form={form} layout="vertical" onFinish={onFinish} className="space-y-6">
+    <Form<FormValues>
+      form={form}
+      layout="vertical"
+      onFinish={onFinish}
+      onValuesChange={handleValuesChange}
+      className="space-y-6"
+    >
       <Form.Item
         label={t('businessTrip.labelDates')}
         name="range"
         rules={[{ required: true, message: t('businessTrip.datesRequired') }]}
       >
-        <DatePicker.RangePicker className="w-full" format="DD MMM YYYY" />
+        <DatePicker.RangePicker
+          className="w-full"
+          format="DD MMM YYYY"
+          classNames={{ popup: { root: 'app-date-popup single-month-panel' } }}
+        />
       </Form.Item>
 
       <Form.Item
@@ -91,7 +110,7 @@ export default function BusinessTripForm() {
         name="purpose"
         rules={[
           { required: true, message: t('businessTrip.purposeRequired') },
-          { min: 10, message: t('businessTrip.purposeMin') },
+          { min: 30, message: t('businessTrip.purposeMin') },
           { max: 1000 },
         ]}
       >
@@ -99,10 +118,10 @@ export default function BusinessTripForm() {
       </Form.Item>
 
       <Form.Item label={t('businessTrip.labelTripType')} name="tripType" rules={[{ required: true }]} initialValue="WEEKDAY">
-        <Radio.Group>
-          <Radio.Button value="WEEKDAY">{t('tripType.WEEKDAY')}</Radio.Button>
-          <Radio.Button value="WEEKEND">{t('tripType.WEEKEND')}</Radio.Button>
-        </Radio.Group>
+        <Select
+          options={tripTypeOptions}
+          classNames={{ popup: { root: 'app-select-popup' } }}
+        />
       </Form.Item>
 
       <Form.Item
@@ -113,9 +132,16 @@ export default function BusinessTripForm() {
         <UploadField buttonLabel={t('businessTrip.uploadButton')} />
       </Form.Item>
 
-      <Button type="primary" htmlType="submit" loading={loading} block size="large">
-        {t('businessTrip.submit')}
-      </Button>
+      <div className="flex justify-end pt-2">
+        <Button
+          type="primary"
+          htmlType="submit"
+          loading={loading}
+          style={{ boxShadow: '0 8px 18px -4px rgb(var(--color-primary-900) / 0.95), 0 2px 6px -2px rgb(var(--color-primary-700) / 0.6)' }}
+        >
+          {t('businessTrip.submit')}
+        </Button>
+      </div>
 
       <div className="text-xs text-muted" dangerouslySetInnerHTML={{ __html: t('businessTrip.autoWeekendNote') }} />
     </Form>

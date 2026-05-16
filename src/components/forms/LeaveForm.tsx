@@ -79,7 +79,11 @@ export default function LeaveForm() {
         name="leaveType"
         rules={[{ required: true, message: t('leave.typeRequired') }]}
       >
-        <Select options={typeOptions} placeholder={t('leave.typePlaceholder')} />
+        <Select
+          options={typeOptions}
+          placeholder={t('leave.typePlaceholder')}
+          classNames={{ popup: { root: 'app-select-popup' } }}
+        />
       </Form.Item>
 
       <Form.Item
@@ -88,7 +92,11 @@ export default function LeaveForm() {
         rules={[{ required: true, message: t('leave.dateRequired') }]}
         extra={days != null ? <span className="text-xs text-muted">{t('leave.totalDaysLabel', { n: days })}</span> : null}
       >
-        <DatePicker.RangePicker className="w-full" format="DD MMM YYYY" />
+        <DatePicker.RangePicker
+          className="w-full"
+          format="DD MMM YYYY"
+          classNames={{ popup: { root: 'app-date-popup single-month-panel' } }}
+        />
       </Form.Item>
 
       <Form.Item
@@ -111,9 +119,16 @@ export default function LeaveForm() {
         <UploadField buttonLabel={t('leave.uploadButton')} />
       </Form.Item>
 
-      <Button type="primary" htmlType="submit" loading={loading} block size="large">
-        {t('leave.submit')}
-      </Button>
+      <div className="flex justify-end pt-2">
+        <Button
+          type="primary"
+          htmlType="submit"
+          loading={loading}
+          style={{ boxShadow: '0 8px 18px -4px rgb(var(--color-primary-900) / 0.95), 0 2px 6px -2px rgb(var(--color-primary-700) / 0.6)' }}
+        >
+          {t('leave.submit')}
+        </Button>
+      </div>
     </Form>
   );
 }

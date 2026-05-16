@@ -8,7 +8,7 @@ import { CheckOutlined, EyeInvisibleOutlined, EyeOutlined, GlobalOutlined, LockO
 import { useI18n } from '@/lib/i18n/provider';
 import { LOCALES, LOCALE_LABEL, LOCALE_SHORT } from '@/lib/i18n/dict';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 type LoginForm = { email: string; password: string };
 
@@ -80,11 +80,9 @@ function LoginInner() {
         </Dropdown>
       </div>
 
-      <div className="glass page-enter w-full max-w-md p-8 space-y-6">
+      <div className="glass login-card page-enter w-full max-w-md p-8 space-y-6">
         <div className="space-y-1 text-center">
-          <Title level={2} style={{ color: 'rgb(var(--color-text-primary))', margin: 0 }}>
-            {t('brand.name')}
-          </Title>
+          <h1 className="login-brand">{t('brand.name')}</h1>
           <Text className="text-muted">{t('brand.tagline')}</Text>
           <div className="pt-1">
             <Text className="text-muted text-xs">{t('login.hint')}</Text>
@@ -132,10 +130,17 @@ function LoginInner() {
               maxLength={100}
             />
           </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" block size="large" loading={loading}>
-              {t('login.submit')}
-            </Button>
+          <Form.Item className="!mb-0">
+            <div className="flex justify-center pt-1">
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                className="login-submit"
+              >
+                {t('login.submit')}
+              </Button>
+            </div>
           </Form.Item>
         </Form>
       </div>

@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { dict, translate, type Locale, type TranslationDict } from './dict';
 
 const STORAGE_KEY = 'fiersa.locale';
-const DEFAULT_LOCALE: Locale = 'id';
+const DEFAULT_LOCALE: Locale = 'en';
 
 type I18nContextValue = {
   locale: Locale;

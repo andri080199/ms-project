@@ -1,15 +1,15 @@
 'use client';
 
-import { App, AutoComplete, Button, Empty, Form, Modal, Popconfirm, Select, Skeleton, Tag, Tooltip, Typography } from 'antd';
+import { App, AutoComplete, Button, Empty, Form, Modal, Popconfirm, Select, Skeleton, Tag, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, IdcardOutlined, TeamOutlined } from '@ant-design/icons';
 import { useEffect, useMemo, useState } from 'react';
 import GlassCard from '@/components/GlassCard';
+import PageHeader, { PageTitle } from '@/components/PageHeader';
 import type { Role } from '@prisma/client';
 import { DEPARTMENT_OPTIONS } from '@/lib/departments';
 import { POSITION_OPTIONS } from '@/lib/positions';
 import { useT } from '@/lib/i18n/provider';
 
-const { Title, Text } = Typography;
 
 type Position = {
   id: string;
@@ -46,20 +46,24 @@ export default function PositionsPage() {
     [t],
   );
 
-  async function load() {
+  async function load(signal?: AbortSignal) {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/positions', { cache: 'no-store' });
+      const res = await fetch('/api/admin/positions', { cache: 'no-store', signal });
       const json = await res.json();
       if (json.success) setRows(json.data);
       else message.error(json.error ?? t('adminPositions.msgLoadFailed'));
+    } catch (err) {
+      if ((err as { name?: string })?.name === 'AbortError') return;
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    load();
+    const ctrl = new AbortController();
+    load(ctrl.signal);
+    return () => ctrl.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -113,17 +117,14 @@ export default function PositionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <Title level={2} style={{ margin: 0, color: 'rgb(var(--color-text-on-canvas))' }}>
-            {t('adminPositions.title')}
-          </Title>
-          <Text className="text-muted">{t('adminPositions.subtitle')}</Text>
+      <PageHeader>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <PageTitle title={t('adminPositions.title')} subtitle={t('adminPositions.subtitle')} />
+          <Button type="primary" icon={<PlusOutlined />} size="large" onClick={openCreate}>
+            {t('adminPositions.addButton')}
+          </Button>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} size="large" onClick={openCreate}>
-          {t('adminPositions.addButton')}
-        </Button>
-      </div>
+      </PageHeader>
 
       {loading ? (
         <GlassCard className="p-6">
@@ -233,6 +234,7 @@ export default function PositionsPage() {
                 (option?.value?.toString() ?? '').toLowerCase().includes(input.toLowerCase())
               }
               allowClear
+              classNames={{ popup: { root: 'app-select-popup' } }}
             />
           </Form.Item>
           <Form.Item
@@ -240,7 +242,11 @@ export default function PositionsPage() {
             name="department"
             rules={[{ required: true, message: t('adminPositions.deptRequired') }]}
           >
-            <Select placeholder={t('adminPositions.deptPlaceholder')} options={DEPARTMENT_OPTIONS} />
+            <Select
+              placeholder={t('adminPositions.deptPlaceholder')}
+              options={DEPARTMENT_OPTIONS}
+              classNames={{ popup: { root: 'app-select-popup' } }}
+            />
           </Form.Item>
           <Form.Item
             label={t('adminPositions.labelRole')}
@@ -251,6 +257,7 @@ export default function PositionsPage() {
             <Select
               placeholder={t('adminPositions.rolePlaceholder')}
               options={roleOptions}
+              classNames={{ popup: { root: 'app-select-popup' } }}
             />
           </Form.Item>
           <div className="flex gap-2 justify-end">

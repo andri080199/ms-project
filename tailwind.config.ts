@@ -33,6 +33,7 @@ const config: Config = {
           light: 'rgb(var(--color-primary-light) / <alpha-value>)',
           dark: 'rgb(var(--color-primary-dark) / <alpha-value>)',
         },
+        secondary: 'rgb(var(--color-secondary) / <alpha-value>)',
         accent: {
           DEFAULT: 'rgb(var(--color-primary-light) / <alpha-value>)',
           fuchsia: 'rgb(var(--color-accent-fuchsia) / <alpha-value>)',

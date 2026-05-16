@@ -20,13 +20,14 @@ const submitterSelect = {
 function overtimeSummary(o: {
   date: Date;
   startTime: Date;
-  endTime: Date;
+  overtimeType: string;
   durationMinutes: number;
   reason: string;
 }) {
   return [
     `Tanggal: ${formatDate(o.date)}`,
-    `Jam: ${formatTime(o.startTime)} — ${formatTime(o.endTime)}`,
+    `Tipe: ${o.overtimeType === 'PREMIUM_SHIFT' ? 'Premium Shift' : 'Overdays'}`,
+    `Jam Mulai: ${formatTime(o.startTime)}`,
     `Durasi: ${minutesToReadable(o.durationMinutes)}`,
     `Alasan: ${o.reason}`,
   ];

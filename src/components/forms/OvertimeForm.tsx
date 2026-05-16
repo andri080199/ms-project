@@ -1,15 +1,17 @@
 'use client';
 
-import { App, Button, DatePicker, Form, Input, TimePicker } from 'antd';
+import { App, Button, DatePicker, Form, Input, Select, TimePicker } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import UploadField from '@/components/UploadField';
 import { useT } from '@/lib/i18n/provider';
 
 type FormValues = {
   date: Dayjs;
-  timeRange: [Dayjs, Dayjs];
+  startTime: Dayjs;
+  overtimeType: 'PREMIUM_SHIFT' | 'OVERDAYS';
+  duration: Dayjs;
   reason: string;
   attachmentUrl?: string;
 };
@@ -20,24 +22,32 @@ export default function OvertimeForm() {
   const { message } = App.useApp();
   const t = useT();
 
+  const overtimeTypeOptions = useMemo(
+    () => [
+      { value: 'PREMIUM_SHIFT', label: t('overtime.typePremiumShift') },
+      { value: 'OVERDAYS', label: t('overtime.typeOverdays') },
+    ],
+    [t],
+  );
+
   async function onFinish(values: FormValues) {
-    const [start, end] = values.timeRange;
-    if (!end.isAfter(start)) {
-      message.error(t('overtime.endAfterStart'));
+    const totalMinutes = values.duration.hour() * 60 + values.duration.minute();
+    if (totalMinutes <= 0) {
+      message.error(t('overtime.durationRequired'));
       return;
     }
     setLoading(true);
     try {
       const date = values.date.startOf('day');
-      const startTime = date.hour(start.hour()).minute(start.minute()).second(0);
-      const endTime = date.hour(end.hour()).minute(end.minute()).second(0);
+      const startTime = date.hour(values.startTime.hour()).minute(values.startTime.minute()).second(0);
       const res = await fetch('/api/overtime', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           date: date.toISOString(),
           startTime: startTime.toISOString(),
-          endTime: endTime.toISOString(),
+          overtimeType: values.overtimeType,
+          durationMinutes: totalMinutes,
           reason: values.reason,
           attachmentUrl: values.attachmentUrl || undefined,
         }),
@@ -60,7 +70,7 @@ export default function OvertimeForm() {
       layout="vertical"
       onFinish={onFinish}
       className="space-y-6"
-      initialValues={{ date: dayjs() }}
+      initialValues={{ date: dayjs(), duration: dayjs().hour(1).minute(0) }}
     >
       <Form.Item
         label={t('overtime.labelDate')}
@@ -77,15 +87,40 @@ export default function OvertimeForm() {
           },
         ]}
       >
-        <DatePicker className="w-full" format="DD MMM YYYY" />
+        <DatePicker
+          className="w-full"
+          format="DD MMM YYYY"
+          classNames={{ popup: { root: 'app-date-popup' } }}
+        />
       </Form.Item>
 
       <Form.Item
-        label={t('overtime.labelTimeRange')}
-        name="timeRange"
-        rules={[{ required: true, message: t('overtime.timeRequired') }]}
+        label={t('overtime.labelOvertimeType')}
+        name="overtimeType"
+        rules={[{ required: true, message: t('overtime.overtimeTypeRequired') }]}
       >
-        <TimePicker.RangePicker className="w-full" minuteStep={15} format="HH:mm" />
+        <Select
+          options={overtimeTypeOptions}
+          placeholder={t('overtime.overtimeTypePlaceholder')}
+          classNames={{ popup: { root: 'app-select-popup' } }}
+        />
+      </Form.Item>
+
+      <Form.Item
+        label={t('overtime.labelStartTime')}
+        name="startTime"
+        rules={[{ required: true, message: t('overtime.startTimeRequired') }]}
+      >
+        <TimePicker className="w-full" minuteStep={1} format="HH:mm" />
+      </Form.Item>
+
+      <Form.Item
+        label={t('overtime.labelDuration')}
+        name="duration"
+        tooltip={t('overtime.durationTooltip')}
+        rules={[{ required: true, message: t('overtime.durationRequired') }]}
+      >
+        <TimePicker className="w-full" minuteStep={1} format="HH:mm" showNow={false} />
       </Form.Item>
 
       <Form.Item
@@ -93,7 +128,7 @@ export default function OvertimeForm() {
         name="reason"
         rules={[
           { required: true, message: t('overtime.reasonRequired') },
-          { min: 10, message: t('overtime.reasonMin') },
+          { min: 30, message: t('overtime.reasonMin') },
           { max: 1000, message: t('overtime.reasonMax') },
         ]}
       >
@@ -108,9 +143,16 @@ export default function OvertimeForm() {
         <UploadField buttonLabel={t('overtime.uploadButton')} />
       </Form.Item>
 
-      <Button type="primary" htmlType="submit" loading={loading} block size="large">
-        {t('overtime.submit')}
-      </Button>
+      <div className="flex justify-end pt-2">
+        <Button
+          type="primary"
+          htmlType="submit"
+          loading={loading}
+          style={{ boxShadow: '0 8px 18px -4px rgb(var(--color-primary-900) / 0.95), 0 2px 6px -2px rgb(var(--color-primary-700) / 0.6)' }}
+        >
+          {t('overtime.submit')}
+        </Button>
+      </div>
     </Form>
   );
 }

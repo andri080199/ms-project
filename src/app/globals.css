@@ -10,60 +10,63 @@
  *   bg-primary/30 (Tailwind)
  */
 :root {
-  /* Primary scale — teal/mint (derived from #1F6F5F · #2FA084 · #6FCF97) */
-  --color-primary-50: 232 245 240;
-  --color-primary-100: 201 234 217;
-  --color-primary-200: 168 221 194;
-  --color-primary-300: 111 207 151;
-  --color-primary-400: 74 186 144;
-  --color-primary-500: 47 160 132;
-  --color-primary-600: 37 136 112;
-  --color-primary-700: 31 111 95;
-  --color-primary-800: 24 85 72;
-  --color-primary-900: 15 60 51;
+  /* Primary scale — violet/iris (derived from #372463 · #5F5082 · #736692) */
+  --color-primary-50: 242 240 247;
+  --color-primary-100: 224 218 236;
+  --color-primary-200: 191 181 206;
+  --color-primary-300: 153 144 173;
+  --color-primary-400: 122 111 146;
+  --color-primary-500: 115 102 146;
+  --color-primary-600: 104 91 130;
+  --color-primary-700: 95 80 130;
+  --color-primary-800: 75 55 122;
+  --color-primary-900: 55 36 99;
 
   --color-primary: var(--color-primary-500);
   --color-primary-light: var(--color-primary-300);
   --color-primary-dark: var(--color-primary-700);
 
-  /* Accents — kept tonal within the teal family (used by aurora & charts) */
-  --color-accent-fuchsia: 47 160 132;   /* repurposed: medium teal */
-  --color-accent-cyan: 110 199 192;     /* light teal-cyan */
-  --color-accent-mint: 111 207 151;     /* mint */
+  /* Secondary — deeper iris (#4B3A73), used for surfaces like the mobile bottom bar */
+  --color-secondary: 75 58 115;
 
-  /* Background / canvas — light off-white with mint tint */
-  --color-bg-base: 238 238 238;
-  --color-bg-canvas-1: 244 248 246;
-  --color-bg-canvas-2: 232 241 237;
-  --color-bg-canvas-3: 220 233 227;
-  --color-bg-elevated: 19 61 52;       /* used for dark frosted card tint */
-  --color-bg-overlay: 5 15 13;
+  /* Accents — kept tonal within the violet family (used by aurora & charts) */
+  --color-accent-fuchsia: 95 80 130;    /* medium iris */
+  --color-accent-cyan: 153 144 173;     /* lavender */
+  --color-accent-mint: 115 102 146;     /* soft iris */
+
+  /* Background / canvas — light off-white with violet tint */
+  --color-bg-base: 238 237 242;
+  --color-bg-canvas-1: 245 243 250;
+  --color-bg-canvas-2: 236 232 242;
+  --color-bg-canvas-3: 223 217 234;
+  --color-bg-elevated: 55 36 99;       /* used for dark frosted card tint */
+  --color-bg-overlay: 31 21 56;
 
   /* Text — light tones live INSIDE dark glass cards;
    * `on-canvas` tones are used directly on the light body. */
   --color-text-primary: 238 238 238;        /* light: text inside .glass */
-  --color-text-secondary: 197 208 204;      /* light secondary inside .glass */
-  --color-text-muted: 138 163 156;          /* light muted inside .glass */
-  --color-text-on-canvas: 15 60 51;         /* dark: text directly on body */
-  --color-text-on-canvas-muted: 90 116 107; /* dark muted on body */
-  --color-text-inverse: 10 31 26;
+  --color-text-secondary: 207 201 218;      /* light secondary inside .glass */
+  --color-text-muted: 148 138 170;          /* light muted inside .glass */
+  --color-text-on-canvas: 55 36 99;         /* deep violet: text directly on body */
+  --color-text-on-canvas-muted: 95 80 130;  /* iris muted on body */
+  --color-text-inverse: 31 21 56;
 
-  /* Status — muted to stay tonally coherent with teal */
+  /* Status — kept semantic (success/warning/danger/info) for clarity */
   --color-success: 47 160 132;
   --color-warning: 217 158 80;
   --color-danger: 200 92 92;
   --color-info: 60 156 150;
 
-  /* Glass surfaces — dark teal frosted on light body */
-  --glass-tint: 19 61 52;
+  /* Glass surfaces — deep violet frosted on light body */
+  --glass-tint: 55 36 99;
   --glass-bg-soft: rgb(var(--glass-tint) / 0.55);
   --glass-bg: rgb(var(--glass-tint) / 0.78);
   --glass-bg-strong: rgb(var(--glass-tint) / 0.9);
   --glass-border: rgb(var(--glass-tint) / 0.45);
   --glass-border-strong: rgb(var(--glass-tint) / 0.6);
   --glass-highlight: rgb(255 255 255 / 0.18);
-  --glass-shadow: 0 16px 48px -12px rgba(15, 60, 51, 0.28);
-  --glass-shadow-elevated: 0 24px 64px -16px rgba(15, 60, 51, 0.4);
+  --glass-shadow: 0 16px 48px -12px rgba(55, 36, 99, 0.28);
+  --glass-shadow-elevated: 0 24px 64px -16px rgba(55, 36, 99, 0.4);
   --glass-blur: blur(28px) saturate(200%);
   --glass-blur-soft: blur(16px) saturate(170%);
   --glass-radius: 20px;
@@ -108,6 +111,54 @@ body {
   pointer-events: none;
   overflow: hidden;
   z-index: 0;
+}
+
+/* Table card — the .glass wrapper would bleed a rectangular bg behind the
+   sticky thead's rounded corners while scrolling. Strip its surface styling
+   and move the dark frosted look onto the inner table elements so the
+   rounded shape stays visible end-to-end. */
+.requests-table-card.glass {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Sticky thead — solid primary fill with rounded top corners. */
+.requests-table-card .ant-table-sticky-holder {
+  background: rgb(var(--glass-tint)) !important;
+  border-top-left-radius: var(--glass-radius) !important;
+  border-top-right-radius: var(--glass-radius) !important;
+  overflow: hidden !important;
+}
+
+/* Header cells — strip the default white tint so they match the row fill. */
+.requests-table-card .ant-table-wrapper .ant-table-thead > tr > th {
+  background: rgb(var(--glass-tint)) !important;
+  border-bottom: 1px solid rgb(255 255 255 / 0.12) !important;
+}
+.requests-table-card .ant-table-wrapper .ant-table-thead > tr > th::before {
+  display: none !important;
+}
+
+/* Body rows carry the solid primary fill so the table matches the
+   AntD primary button colour (#372463). Higher specificity than the
+   generic `.ant-table-wrapper .ant-table-tbody > tr > td { transparent }` below. */
+.requests-table-card .ant-table-wrapper .ant-table-tbody > tr > td {
+  background: rgb(var(--glass-tint)) !important;
+}
+.requests-table-card .ant-table-wrapper .ant-table-tbody > tr:hover > td {
+  background: rgb(var(--color-primary-800)) !important;
+}
+/* Pagination row attaches to the table bottom — extend the solid surface
+   and round its bottom corners so the card has a clean edge. */
+.requests-table-card .ant-table-wrapper .ant-pagination {
+  background: rgb(var(--glass-tint));
+  padding: 12px 16px;
+  border-bottom-left-radius: var(--glass-radius);
+  border-bottom-right-radius: var(--glass-radius);
+  margin: 0 !important;
 }
 
 .aurora {
@@ -166,10 +217,7 @@ body {
  * win at equal specificity. */
 @layer components {
   .glass {
-    background:
-      linear-gradient(180deg, var(--glass-bg-strong) 0%, var(--glass-bg) 100%);
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
+    background: rgb(var(--glass-tint));
     border: 1px solid var(--glass-border);
     border-radius: var(--glass-radius);
     color: rgb(var(--color-text-primary));
@@ -208,17 +256,15 @@ body {
 }
 
 .page-enter {
-  animation: fadeUp 0.45s ease-out both;
+  animation: fadeUp 0.35s ease-out backwards;
 }
 
 @keyframes fadeUp {
   from {
     opacity: 0;
-    transform: translateY(10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -278,11 +324,16 @@ body {
   border-bottom-color: rgb(var(--color-primary-700) / 0.15) !important;
 }
 /* Tabs inside a dark glass card revert to light */
-.glass .ant-tabs .ant-tabs-tab {
+.glass .ant-tabs .ant-tabs-tab,
+.ant-modal .ant-tabs .ant-tabs-tab {
   color: rgb(var(--color-text-secondary)) !important;
 }
 .glass .ant-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
   color: rgb(var(--color-primary-300)) !important;
+}
+.ant-modal .ant-tabs .ant-tabs-tab:hover .ant-tabs-tab-btn,
+.ant-modal .ant-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: rgb(var(--color-text-primary)) !important;
 }
 
 .ant-modal .ant-modal-content,
@@ -310,7 +361,7 @@ body {
   background: rgb(255 255 255 / 0.95) !important;
   border-color: rgb(var(--color-primary-700) / 0.35) !important;
   color: rgb(var(--color-text-on-canvas)) !important;
-  box-shadow: 0 1px 2px rgba(15, 60, 51, 0.04) !important;
+  box-shadow: 0 1px 2px rgba(55, 36, 99, 0.04) !important;
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease !important;
 }
 .ant-input::placeholder,
@@ -407,6 +458,141 @@ body {
 .ant-drawer-content .ant-input-affix-wrapper .anticon {
   color: rgb(var(--color-text-muted)) !important;
 }
+/* Inner <input> inside an affix-wrapper (e.g. Input.Password) shouldn't paint its own bg over the wrapper */
+.glass .ant-input-affix-wrapper > input.ant-input,
+.ant-modal .ant-input-affix-wrapper > input.ant-input,
+.ant-drawer-content .ant-input-affix-wrapper > input.ant-input {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Hover inputs inside glass/modal/drawer: solid white bg with primary-deep text for contrast */
+.glass .ant-input:hover,
+.glass .ant-picker:hover,
+.glass .ant-input-affix-wrapper:hover,
+.glass .ant-input-number:hover,
+.glass .ant-select:not(.ant-select-disabled):hover .ant-select-selector,
+.ant-modal .ant-input:hover,
+.ant-modal .ant-picker:hover,
+.ant-modal .ant-input-affix-wrapper:hover,
+.ant-modal .ant-input-number:hover,
+.ant-modal .ant-select:not(.ant-select-disabled):hover .ant-select-selector,
+.ant-drawer-content .ant-input:hover,
+.ant-drawer-content .ant-picker:hover,
+.ant-drawer-content .ant-input-affix-wrapper:hover,
+.ant-drawer-content .ant-input-number:hover,
+.ant-drawer-content .ant-select:not(.ant-select-disabled):hover .ant-select-selector {
+  background: rgb(255 255 255) !important;
+  border-color: rgb(var(--color-primary-500)) !important;
+  color: rgb(var(--color-primary-900)) !important;
+}
+
+/* Focused inputs inside glass/modal/drawer: solid white bg with primary-deep text */
+.glass .ant-input:focus,
+.glass .ant-input-focused,
+.glass .ant-input-affix-wrapper-focused,
+.glass .ant-picker-focused,
+.glass .ant-input-number-focused,
+.glass .ant-select-focused .ant-select-selector,
+.ant-modal .ant-input:focus,
+.ant-modal .ant-input-focused,
+.ant-modal .ant-input-affix-wrapper-focused,
+.ant-modal .ant-picker-focused,
+.ant-modal .ant-input-number-focused,
+.ant-modal .ant-select-focused .ant-select-selector,
+.ant-drawer-content .ant-input:focus,
+.ant-drawer-content .ant-input-focused,
+.ant-drawer-content .ant-input-affix-wrapper-focused,
+.ant-drawer-content .ant-picker-focused,
+.ant-drawer-content .ant-input-number-focused,
+.ant-drawer-content .ant-select-focused .ant-select-selector {
+  background: rgb(255 255 255) !important;
+  border-color: rgb(var(--color-primary-500)) !important;
+  box-shadow: 0 0 0 3px rgb(var(--color-primary-500) / 0.22) !important;
+  color: rgb(var(--color-primary-900)) !important;
+}
+
+/* Propagate primary-deep text to inner inputs/icons/values when the wrapper is hovered or focused */
+.glass .ant-input-affix-wrapper:hover > input.ant-input,
+.glass .ant-input-affix-wrapper-focused > input.ant-input,
+.glass .ant-input-affix-wrapper:hover .anticon,
+.glass .ant-input-affix-wrapper-focused .anticon,
+.glass .ant-picker:hover .ant-picker-input > input,
+.glass .ant-picker-focused .ant-picker-input > input,
+.glass .ant-picker:hover .ant-picker-suffix,
+.glass .ant-picker-focused .ant-picker-suffix,
+.glass .ant-select:not(.ant-select-disabled):hover .ant-select-selection-item,
+.glass .ant-select-focused .ant-select-selection-item,
+.glass .ant-select:not(.ant-select-disabled):hover .ant-select-selection-search-input,
+.glass .ant-select-focused .ant-select-selection-search-input,
+.glass .ant-select:not(.ant-select-disabled):hover .ant-select-arrow,
+.glass .ant-select-focused .ant-select-arrow,
+.ant-modal .ant-input-affix-wrapper:hover > input.ant-input,
+.ant-modal .ant-input-affix-wrapper-focused > input.ant-input,
+.ant-modal .ant-input-affix-wrapper:hover .anticon,
+.ant-modal .ant-input-affix-wrapper-focused .anticon,
+.ant-modal .ant-picker:hover .ant-picker-input > input,
+.ant-modal .ant-picker-focused .ant-picker-input > input,
+.ant-modal .ant-picker:hover .ant-picker-suffix,
+.ant-modal .ant-picker-focused .ant-picker-suffix,
+.ant-modal .ant-select:not(.ant-select-disabled):hover .ant-select-selection-item,
+.ant-modal .ant-select-focused .ant-select-selection-item,
+.ant-modal .ant-select:not(.ant-select-disabled):hover .ant-select-selection-search-input,
+.ant-modal .ant-select-focused .ant-select-selection-search-input,
+.ant-modal .ant-select:not(.ant-select-disabled):hover .ant-select-arrow,
+.ant-modal .ant-select-focused .ant-select-arrow,
+.ant-drawer-content .ant-input-affix-wrapper:hover > input.ant-input,
+.ant-drawer-content .ant-input-affix-wrapper-focused > input.ant-input,
+.ant-drawer-content .ant-input-affix-wrapper:hover .anticon,
+.ant-drawer-content .ant-input-affix-wrapper-focused .anticon,
+.ant-drawer-content .ant-picker:hover .ant-picker-input > input,
+.ant-drawer-content .ant-picker-focused .ant-picker-input > input,
+.ant-drawer-content .ant-picker:hover .ant-picker-suffix,
+.ant-drawer-content .ant-picker-focused .ant-picker-suffix,
+.ant-drawer-content .ant-select:not(.ant-select-disabled):hover .ant-select-selection-item,
+.ant-drawer-content .ant-select-focused .ant-select-selection-item,
+.ant-drawer-content .ant-select:not(.ant-select-disabled):hover .ant-select-selection-search-input,
+.ant-drawer-content .ant-select-focused .ant-select-selection-search-input,
+.ant-drawer-content .ant-select:not(.ant-select-disabled):hover .ant-select-arrow,
+.ant-drawer-content .ant-select-focused .ant-select-arrow,
+.glass .ant-input-number:hover .ant-input-number-input,
+.glass .ant-input-number-focused .ant-input-number-input,
+.ant-modal .ant-input-number:hover .ant-input-number-input,
+.ant-modal .ant-input-number-focused .ant-input-number-input,
+.ant-drawer-content .ant-input-number:hover .ant-input-number-input,
+.ant-drawer-content .ant-input-number-focused .ant-input-number-input {
+  color: rgb(var(--color-primary-900)) !important;
+}
+
+/* Placeholder stays muted but tinted toward primary on hover/focus so it remains legible on white bg */
+.glass .ant-input-affix-wrapper:hover input::placeholder,
+.glass .ant-input-affix-wrapper-focused input::placeholder,
+.glass .ant-picker:hover .ant-picker-input > input::placeholder,
+.glass .ant-picker-focused .ant-picker-input > input::placeholder,
+.glass .ant-select:not(.ant-select-disabled):hover .ant-select-selection-placeholder,
+.glass .ant-select-focused .ant-select-selection-placeholder,
+.ant-modal .ant-input-affix-wrapper:hover input::placeholder,
+.ant-modal .ant-input-affix-wrapper-focused input::placeholder,
+.ant-modal .ant-picker:hover .ant-picker-input > input::placeholder,
+.ant-modal .ant-picker-focused .ant-picker-input > input::placeholder,
+.ant-modal .ant-select:not(.ant-select-disabled):hover .ant-select-selection-placeholder,
+.ant-modal .ant-select-focused .ant-select-selection-placeholder,
+.ant-drawer-content .ant-input-affix-wrapper:hover input::placeholder,
+.ant-drawer-content .ant-input-affix-wrapper-focused input::placeholder,
+.ant-drawer-content .ant-picker:hover .ant-picker-input > input::placeholder,
+.ant-drawer-content .ant-picker-focused .ant-picker-input > input::placeholder,
+.ant-drawer-content .ant-select:not(.ant-select-disabled):hover .ant-select-selection-placeholder,
+.ant-drawer-content .ant-select-focused .ant-select-selection-placeholder {
+  color: rgb(var(--color-primary-700) / 0.6) !important;
+}
+
+/* The inner search input of a Select/AutoComplete must stay transparent so the selector bg shows through */
+.glass .ant-select .ant-select-selection-search-input,
+.ant-modal .ant-select .ant-select-selection-search-input,
+.ant-drawer-content .ant-select .ant-select-selection-search-input {
+  background: transparent !important;
+}
 
 /* Form labels — context-aware */
 .ant-form-item-label > label {
@@ -482,7 +668,7 @@ body {
   border: 1px solid rgb(var(--color-primary-700) / 0.18) !important;
   border-radius: 10px !important;
   padding: 3px !important;
-  box-shadow: 0 1px 2px rgba(15, 60, 51, 0.04) !important;
+  box-shadow: 0 1px 2px rgba(55, 36, 99, 0.04) !important;
 }
 .ant-segmented .ant-segmented-item {
   color: rgb(var(--color-text-on-canvas-muted)) !important;
@@ -522,6 +708,21 @@ body {
 }
 
 /* Pagination — teal-accented on light body */
+.ant-pagination {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px !important;
+}
+.ant-pagination .ant-pagination-item,
+.ant-pagination .ant-pagination-prev,
+.ant-pagination .ant-pagination-next,
+.ant-pagination .ant-pagination-jump-prev,
+.ant-pagination .ant-pagination-jump-next,
+.ant-pagination .ant-pagination-options {
+  margin-inline-end: 0 !important;
+  margin-inline-start: 0 !important;
+}
 .ant-pagination .ant-pagination-item,
 .ant-pagination .ant-pagination-prev .ant-pagination-item-link,
 .ant-pagination .ant-pagination-next .ant-pagination-item-link {
@@ -561,4 +762,733 @@ body {
   background: rgb(255 255 255 / 0.5) !important;
   border-color: rgb(var(--color-primary-700) / 0.1) !important;
   color: rgb(var(--color-text-on-canvas-muted)) !important;
+}
+
+/* Login page — embossed brand title */
+.login-brand {
+  font-size: 2.25rem;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.02em;
+  color: rgb(var(--color-text-primary));
+  background: linear-gradient(
+    180deg,
+    rgb(var(--color-primary-200)) 0%,
+    rgb(var(--color-text-primary)) 55%,
+    rgb(var(--color-primary-700)) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow:
+    0 1px 0 rgb(255 255 255 / 0.12),
+    0 2px 8px rgb(0 0 0 / 0.35),
+    0 6px 18px rgb(var(--color-primary-700) / 0.45);
+  filter: drop-shadow(0 1px 0 rgb(0 0 0 / 0.25));
+}
+
+/* Login page — transparent inputs (override dark glass tint) */
+.login-card .ant-input,
+.login-card .ant-input-affix-wrapper,
+.login-card .ant-input-affix-wrapper > input.ant-input {
+  background: transparent !important;
+  border-color: rgb(255 255 255 / 0.18) !important;
+}
+.login-card .ant-input-affix-wrapper:hover,
+.login-card .ant-input:hover {
+  border-color: rgb(var(--color-primary-300)) !important;
+  background: transparent !important;
+}
+.login-card .ant-input-affix-wrapper-focused,
+.login-card .ant-input:focus,
+.login-card .ant-input-focused {
+  background: transparent !important;
+  border-color: rgb(var(--color-primary-300)) !important;
+  box-shadow: 0 0 0 3px rgb(var(--color-primary-300) / 0.2) !important;
+}
+.login-card input:-webkit-autofill,
+.login-card input:-webkit-autofill:hover,
+.login-card input:-webkit-autofill:focus,
+.login-card input:-webkit-autofill:active,
+.login-card .ant-input-affix-wrapper input:-webkit-autofill,
+.login-card .ant-input-affix-wrapper input:-webkit-autofill:hover,
+.login-card .ant-input-affix-wrapper input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px rgb(var(--glass-tint)) inset !important;
+  box-shadow: 0 0 0 1000px rgb(var(--glass-tint)) inset !important;
+  -webkit-text-fill-color: rgb(var(--color-text-primary)) !important;
+  caret-color: rgb(var(--color-text-primary)) !important;
+  border-radius: 8px;
+  transition: background-color 99999s ease-in-out 0s, color 99999s ease-in-out 0s;
+}
+
+/* Login page — prominent compact submit button (size override; visuals come from global .ant-btn-primary) */
+.login-submit.ant-btn {
+  min-width: 160px;
+  height: 40px;
+  padding: 0 28px;
+}
+
+/* ================================================================
+ * Global button styling — pill + gradient + glow (matches login CTA)
+ * Targets the common Button variants while leaving icon-only,
+ * pagination, search-suffix, and segmented controls untouched.
+ * ================================================================ */
+
+/* Primary (filled brand) */
+.ant-btn-primary:not(.ant-btn-icon-only):not(.ant-input-search-button):not(.ant-btn-dangerous) {
+  height: 36px;
+  padding: 0 22px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  border-radius: 9999px;
+  background: var(--gradient-brand) !important;
+  border: 1px solid rgb(var(--color-primary-300) / 0.55) !important;
+  color: #fff !important;
+  box-shadow:
+    0 6px 18px -6px rgb(var(--color-primary-700) / 0.55),
+    0 0 0 1px rgb(255 255 255 / 0.06) inset;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.ant-btn-primary:not(.ant-btn-icon-only):not(.ant-input-search-button):not(.ant-btn-dangerous):hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow:
+    0 10px 24px -6px rgb(var(--color-primary-700) / 0.75),
+    0 0 0 1px rgb(255 255 255 / 0.1) inset;
+}
+.ant-btn-primary:not(.ant-btn-icon-only):not(.ant-input-search-button):not(.ant-btn-dangerous):active {
+  transform: translateY(0);
+}
+
+/* Large variant — still pill, just a touch taller for hero CTAs */
+.ant-btn-lg.ant-btn-primary:not(.ant-btn-icon-only):not(.ant-btn-dangerous) {
+  height: 40px;
+  padding: 0 28px;
+  font-size: 14px;
+}
+
+/* Small variant — compact pill */
+.ant-btn-sm.ant-btn-primary:not(.ant-btn-icon-only):not(.ant-btn-dangerous) {
+  height: 28px;
+  padding: 0 14px;
+  font-size: 12px;
+}
+
+/* Default (outline) buttons — pill ghost with brand border */
+.ant-btn-default:not(.ant-btn-icon-only):not(.ant-btn-dangerous):not(.ant-pagination-item-link):not(.ant-picker-now-btn):not(.ant-picker-clear-btn) {
+  height: 36px;
+  padding: 0 20px;
+  font-weight: 600;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--color-primary-700) / 0.4) !important;
+  background: rgb(255 255 255 / 0.7) !important;
+  color: rgb(var(--color-text-on-canvas)) !important;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.ant-btn-default:not(.ant-btn-icon-only):not(.ant-btn-dangerous):not(.ant-pagination-item-link):not(.ant-picker-now-btn):not(.ant-picker-clear-btn):hover {
+  border-color: rgb(var(--color-primary-500)) !important;
+  background: rgb(255 255 255 / 0.95) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -8px rgb(var(--color-primary-700) / 0.4);
+}
+.glass .ant-btn-default:not(.ant-btn-icon-only):not(.ant-btn-dangerous):not(.ant-pagination-item-link):not(.ant-picker-now-btn):not(.ant-picker-clear-btn),
+.ant-modal .ant-btn-default:not(.ant-btn-icon-only):not(.ant-btn-dangerous),
+.ant-drawer-content .ant-btn-default:not(.ant-btn-icon-only):not(.ant-btn-dangerous) {
+  background: rgb(255 255 255 / 0.08) !important;
+  border-color: rgb(var(--color-primary-300) / 0.45) !important;
+  color: rgb(var(--color-text-primary)) !important;
+}
+.glass .ant-btn-default:not(.ant-btn-icon-only):not(.ant-btn-dangerous):hover,
+.ant-modal .ant-btn-default:not(.ant-btn-icon-only):not(.ant-btn-dangerous):hover,
+.ant-drawer-content .ant-btn-default:not(.ant-btn-icon-only):not(.ant-btn-dangerous):hover {
+  background: rgb(255 255 255 / 0.14) !important;
+  border-color: rgb(var(--color-primary-300)) !important;
+}
+.ant-btn-sm.ant-btn-default:not(.ant-btn-icon-only):not(.ant-btn-dangerous) {
+  height: 28px;
+  padding: 0 14px;
+  font-size: 12px;
+}
+
+/* Danger buttons (rose gradient pill) */
+.ant-btn-dangerous:not(.ant-btn-icon-only) {
+  height: 36px;
+  padding: 0 20px;
+  font-weight: 700;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, rgb(var(--color-danger)) 0%, #7C2929 100%) !important;
+  border: 1px solid rgb(var(--color-danger) / 0.5) !important;
+  color: #fff !important;
+  box-shadow:
+    0 6px 16px -6px rgb(var(--color-danger) / 0.55),
+    0 0 0 1px rgb(255 255 255 / 0.06) inset;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.ant-btn-dangerous:not(.ant-btn-icon-only):hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow:
+    0 10px 22px -6px rgb(var(--color-danger) / 0.7),
+    0 0 0 1px rgb(255 255 255 / 0.1) inset;
+}
+.ant-btn-dangerous:not(.ant-btn-icon-only):active {
+  transform: translateY(0);
+}
+.ant-btn-sm.ant-btn-dangerous:not(.ant-btn-icon-only) {
+  height: 28px;
+  padding: 0 14px;
+  font-size: 12px;
+}
+.ant-btn-lg.ant-btn-dangerous:not(.ant-btn-icon-only) {
+  height: 40px;
+  padding: 0 26px;
+}
+
+/* Icon inside pill buttons — keep the icon hugging the label nicely */
+.ant-btn-primary:not(.ant-btn-icon-only) .anticon,
+.ant-btn-dangerous:not(.ant-btn-icon-only) .anticon {
+  color: inherit !important;
+}
+
+/* Disabled state — flatten the shine but keep the pill */
+.ant-btn:disabled,
+.ant-btn.ant-btn-disabled {
+  filter: grayscale(0.3) brightness(0.95);
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Empty state icon — force white on every table/list empty placeholder.
+   AntD's simple Empty paints colors via inline SVG attributes (fill / stroke),
+   so we override those attribute values directly. */
+.ant-empty-image svg ellipse {
+  fill: rgb(255 255 255 / 0.18) !important;
+}
+.ant-empty-image svg g[stroke] {
+  stroke: rgb(255 255 255 / 0.9) !important;
+}
+.ant-empty-image svg path {
+  fill: rgb(255 255 255 / 0.28) !important;
+}
+.ant-empty-image svg path:not([fill]) {
+  fill: transparent !important;
+}
+.ant-empty .ant-empty-image svg {
+  opacity: 1 !important;
+}
+
+/* ============================================================
+ * Approvals history filter bar
+ * Desktop (md+): glass panel + Segmented pills.
+ * Mobile: inline Dropdown trigger pills (no wrapper), expand to fit.
+ * ============================================================ */
+
+/* Mobile-only card list — replaces the table on small screens for a
+   denser, table-like layout. Rows stacked flush with hairline dividers. */
+.approvals-table-desktop {
+  display: block;
+}
+.approvals-cards-mobile {
+  display: none;
+}
+@media (max-width: 767px) {
+  .approvals-table-desktop {
+    display: none;
+  }
+  .approvals-cards-mobile {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+    margin-left: -12px;
+    margin-right: -12px;
+  }
+}
+
+.approval-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid rgb(255 255 255 / 0.14);
+  font: inherit;
+  color: inherit;
+  transition: background 0.15s ease;
+}
+.approval-card:last-child {
+  border-bottom: none;
+}
+.approval-card:active {
+  background: rgb(255 255 255 / 0.04);
+}
+.approval-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.approval-card-emp {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.approval-card-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.approval-card-dept {
+  font-size: 10px;
+  color: rgb(var(--color-text-secondary));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+.approval-card-detail {
+  font-size: 12px;
+  color: rgb(var(--color-text-secondary));
+  line-height: 1.4;
+}
+.approval-card-detail .text-sm {
+  color: rgb(255 255 255 / 0.92);
+  font-size: 12px;
+}
+.approval-card-detail .text-xs {
+  font-size: 11px;
+}
+.approval-card-detail .space-y-0\.5 > * + * {
+  margin-top: 1px;
+}
+.approval-card-date {
+  font-size: 10px;
+  color: rgb(var(--color-text-secondary));
+  white-space: nowrap;
+  margin-top: 2px;
+}
+.approval-card-comment {
+  font-size: 11px;
+  font-style: italic;
+  color: rgb(var(--color-text-secondary));
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+/* Tabs + filter row rendered inside PageHeader (outside #page-scroll), so
+   scrolled content can never appear behind it. No bg needed. */
+.approvals-header-nav {
+  margin-top: 14px;
+}
+
+/* Desktop layout — glass panel */
+.approvals-filters-desktop {
+  display: none;
+}
+@media (min-width: 768px) {
+  .approvals-filters-desktop {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 16px;
+  }
+}
+
+/* Mobile layout — bare pills, mepet ke atas (negative margin) */
+.approvals-filters-mobile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: -10px;
+}
+@media (min-width: 768px) {
+  .approvals-filters-mobile {
+    display: none;
+  }
+}
+
+/* Counter pill — shared between layouts, matches table/filter pill colour */
+.approvals-filter-counter {
+  align-self: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgb(var(--glass-tint));
+  color: #fff;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  box-shadow:
+    0 6px 16px -6px rgb(0 0 0 / 0.35),
+    0 0 0 1px rgb(255 255 255 / 0.04) inset;
+  white-space: nowrap;
+}
+.approvals-filters-desktop .approvals-filter-counter {
+  margin-left: auto;
+  font-size: 12px;
+  padding: 4px 12px;
+}
+
+/* Desktop period range picker — glass pill */
+.approvals-period-picker.ant-picker {
+  background: rgb(255 255 255 / 0.06) !important;
+  border: 1px solid rgb(var(--color-primary-300) / 0.22) !important;
+  border-radius: 9999px !important;
+  padding: 4px 14px !important;
+  min-height: 30px;
+}
+.approvals-period-picker.ant-picker .ant-picker-input > input {
+  color: #fff !important;
+  font-size: 12px;
+  font-weight: 600;
+}
+.approvals-period-picker.ant-picker .ant-picker-suffix,
+.approvals-period-picker.ant-picker .ant-picker-clear,
+.approvals-period-picker.ant-picker .ant-picker-separator {
+  color: rgb(255 255 255 / 0.75) !important;
+}
+.approvals-period-picker.ant-picker:hover,
+.approvals-period-picker.ant-picker-focused {
+  border-color: rgb(var(--color-primary-300) / 0.6) !important;
+}
+
+/* Mobile period field — inline, compact RangePicker */
+.approvals-filters-mobile .filter-field-period .ant-picker {
+  background: rgb(var(--glass-tint)) !important;
+  border: 1px solid rgb(255 255 255 / 0.14) !important;
+  border-radius: 9999px !important;
+  padding: 3px 8px !important;
+  min-height: 28px;
+  width: auto;
+}
+.approvals-filters-mobile .filter-field-period .ant-picker .ant-picker-input > input {
+  color: #fff !important;
+  font-size: 10px;
+  font-weight: 600;
+  width: 34px;
+  text-align: center;
+}
+.approvals-filters-mobile .filter-field-period .ant-picker .ant-picker-suffix,
+.approvals-filters-mobile .filter-field-period .ant-picker .ant-picker-clear {
+  color: rgb(255 255 255 / 0.8) !important;
+  font-size: 10px;
+  margin-inline-start: 4px;
+}
+.approvals-filters-mobile .filter-field-period .ant-picker .ant-picker-separator {
+  color: rgb(255 255 255 / 0.7) !important;
+  font-size: 10px;
+  padding: 0 2px;
+}
+.approvals-filters-mobile .filter-field-period .ant-picker .ant-picker-active-bar {
+  display: none;
+}
+
+/* Mobile popup — show 1 month panel only (screen too narrow for 2) */
+@media (max-width: 767px) {
+  .approvals-period-popup-mobile .ant-picker-panels {
+    flex-wrap: nowrap !important;
+  }
+  .approvals-period-popup-mobile .ant-picker-panels > *:nth-child(n+2) {
+    display: none !important;
+  }
+  .approvals-period-popup-mobile .ant-picker-range-arrow {
+    display: none !important;
+  }
+}
+
+/* Download CSV button — primary-tinted with shadow */
+.approvals-download-btn {
+  box-shadow:
+    0 8px 18px -4px rgb(var(--color-primary-900) / 0.95),
+    0 2px 6px -2px rgb(var(--color-primary-700) / 0.6) !important;
+}
+/* Mobile download button — compact, fits inline next to filters */
+.approvals-download-btn-mobile {
+  height: 30px !important;
+  padding: 0 12px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  border-radius: 9999px !important;
+  align-self: flex-end;
+}
+/* Mobile: records sebagai text plain, sejajar dengan label "Jenis"/"Keputusan".
+   align-self: flex-start menempelkannya ke baris atas (level label),
+   sehingga lebar pill yang berubah tidak menggesernya. */
+.approvals-filters-mobile .approvals-filter-counter {
+  margin-left: auto;
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: rgb(var(--color-text-on-canvas));
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+/* Desktop Segmented — compact pills, gradient on selected */
+.approvals-filters-desktop .ant-segmented {
+  padding: 3px !important;
+  border-radius: 9999px !important;
+  background: rgb(255 255 255 / 0.06) !important;
+  border: 1px solid rgb(var(--color-primary-300) / 0.22) !important;
+}
+.approvals-filters-desktop .ant-segmented .ant-segmented-item {
+  border-radius: 9999px !important;
+  padding: 0 10px !important;
+  min-height: 28px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(var(--color-text-secondary)) !important;
+  transition: color 0.18s ease;
+}
+.approvals-filters-desktop .ant-segmented .ant-segmented-item-label {
+  padding: 0 2px !important;
+  line-height: 28px !important;
+  min-height: 28px !important;
+  white-space: nowrap;
+}
+.approvals-filters-desktop .ant-segmented .ant-segmented-item:hover:not(.ant-segmented-item-selected) {
+  color: rgb(var(--color-primary-200)) !important;
+}
+.approvals-filters-desktop .ant-segmented .ant-segmented-item-selected,
+.approvals-filters-desktop .ant-segmented .ant-segmented-thumb {
+  border-radius: 9999px !important;
+  background: var(--gradient-brand) !important;
+  color: #fff !important;
+  box-shadow:
+    0 4px 12px -4px rgb(var(--color-primary-700) / 0.6),
+    0 0 0 1px rgb(255 255 255 / 0.08) inset !important;
+}
+
+/* Mobile filter trigger — primary-tinted pill with category label + value + chevron */
+/* Filter field — label sits above the pill trigger */
+.filter-field {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.filter-field-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(var(--color-text-on-canvas));
+  padding-left: 4px;
+}
+
+.filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  background: rgb(var(--glass-tint));
+  border: 1px solid rgb(255 255 255 / 0.12);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow:
+    0 6px 16px -6px rgb(0 0 0 / 0.35),
+    0 0 0 1px rgb(255 255 255 / 0.04) inset;
+  transition: filter 0.18s ease, border-color 0.18s ease, transform 0.15s ease;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.filter-trigger:hover,
+.filter-trigger:focus-visible {
+  filter: brightness(1.1);
+  border-color: rgb(var(--color-primary-300) / 0.8);
+  outline: none;
+}
+.filter-trigger:active {
+  transform: scale(0.98);
+}
+.filter-trigger .filter-trigger-value {
+  color: #fff;
+  font-weight: 700;
+}
+.filter-trigger .filter-trigger-chevron {
+  font-size: 10px;
+  color: rgb(255 255 255 / 0.85);
+  transition: transform 0.2s ease;
+}
+.filter-trigger[aria-expanded='true'] .filter-trigger-chevron {
+  transform: rotate(180deg);
+}
+
+/* Dropdown menu (used by mobile triggers) — glass dark surface, pill items */
+.approvals-filter-menu.ant-dropdown .ant-dropdown-menu {
+  border-radius: 14px !important;
+  padding: 6px !important;
+  background:
+    linear-gradient(180deg, var(--glass-bg-strong), var(--glass-bg)),
+    rgb(var(--color-bg-elevated) / 0.92) !important;
+  border: 1px solid rgb(var(--color-primary-300) / 0.3) !important;
+  box-shadow: 0 14px 36px -10px rgb(0 0 0 / 0.5) !important;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  min-width: 180px;
+}
+.approvals-filter-menu .ant-dropdown-menu-item {
+  border-radius: 10px !important;
+  padding: 8px 14px !important;
+  margin: 2px 0 !important;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgb(var(--color-text-secondary)) !important;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.approvals-filter-menu .ant-dropdown-menu-item:hover {
+  background: rgb(var(--color-primary-300) / 0.14) !important;
+  color: rgb(var(--color-text-primary)) !important;
+}
+.approvals-filter-menu .ant-dropdown-menu-item-selected {
+  background: var(--gradient-brand) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 12px -4px rgb(var(--color-primary-700) / 0.55);
+}
+.approvals-filter-menu .ant-dropdown-menu-item-selected:hover {
+  background: var(--gradient-brand) !important;
+  color: #fff !important;
+  filter: brightness(1.05);
+}
+
+/* Glass-styled option panel for AntD Select — leaves the trigger button untouched */
+.app-select-popup.ant-select-dropdown {
+  border-radius: 14px !important;
+  padding: 6px !important;
+  background:
+    linear-gradient(180deg, var(--glass-bg-strong), var(--glass-bg)),
+    rgb(var(--color-bg-elevated) / 0.92) !important;
+  border: 1px solid rgb(var(--color-primary-300) / 0.3) !important;
+  box-shadow: 0 14px 36px -10px rgb(0 0 0 / 0.5) !important;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+.app-select-popup .ant-select-item.ant-select-item-option {
+  border-radius: 10px !important;
+  padding: 8px 14px !important;
+  margin: 2px 0 !important;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgb(var(--color-text-secondary)) !important;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.app-select-popup .ant-select-item-option-active:not(.ant-select-item-option-disabled):not(.ant-select-item-option-selected),
+.app-select-popup .ant-select-item-option:not(.ant-select-item-option-disabled):not(.ant-select-item-option-selected):hover {
+  background: rgb(var(--color-primary-100) / 0.95) !important;
+  color: rgb(var(--color-primary-900)) !important;
+}
+/* Force text-content child to inherit the deep primary color on hover/active so it stays readable on the light bg */
+.app-select-popup .ant-select-item-option-active:not(.ant-select-item-option-disabled):not(.ant-select-item-option-selected) .ant-select-item-option-content,
+.app-select-popup .ant-select-item-option:not(.ant-select-item-option-disabled):not(.ant-select-item-option-selected):hover .ant-select-item-option-content,
+.app-select-popup .ant-select-item-option-active:not(.ant-select-item-option-disabled):not(.ant-select-item-option-selected) *,
+.app-select-popup .ant-select-item-option:not(.ant-select-item-option-disabled):not(.ant-select-item-option-selected):hover * {
+  color: rgb(var(--color-primary-900)) !important;
+}
+.app-select-popup .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+  background: var(--gradient-brand) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 12px -4px rgb(var(--color-primary-700) / 0.55);
+}
+/* Selected + hover/active — darker (not whitened) */
+.app-select-popup .ant-select-item-option-selected.ant-select-item-option-active:not(.ant-select-item-option-disabled),
+.app-select-popup .ant-select-item-option-selected:not(.ant-select-item-option-disabled):hover {
+  background: var(--gradient-brand) !important;
+  color: #fff !important;
+  filter: brightness(0.88) saturate(1.1);
+}
+.app-select-popup .ant-select-item-empty {
+  color: rgb(var(--color-text-muted)) !important;
+  font-size: 13px;
+}
+
+@keyframes mobile-nav-icon-bob {
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(-10px); }
+  100% { transform: translateY(0); }
+}
+.mobile-nav-icon-bob {
+  animation: mobile-nav-icon-bob 350ms cubic-bezier(0.45, 0, 0.25, 1) both;
+}
+
+.app-date-popup .ant-picker-panel-container,
+.app-date-popup .ant-picker-panel-layout,
+.app-date-popup .ant-picker-panel {
+  background: rgb(var(--color-bg-elevated)) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.app-date-popup .ant-picker-panel-container {
+  border: 1px solid rgb(var(--color-primary-300) / 0.55) !important;
+  border-radius: 14px !important;
+  box-shadow:
+    0 16px 38px -12px rgb(0 0 0 / 0.55),
+    0 0 0 1px rgb(255 255 255 / 0.06) inset !important;
+  overflow: hidden;
+}
+.app-date-popup .ant-picker-panel {
+  border: none !important;
+}
+
+/* Single-month view for RangePicker — hide the right panel */
+.app-date-popup.single-month-panel .ant-picker-panels > *:nth-child(n + 2) {
+  display: none !important;
+}
+.app-date-popup.single-month-panel .ant-picker-panels {
+  width: auto !important;
+}
+
+@media (max-width: 767px) {
+  .app-date-popup {
+    position: fixed !important;
+    left: 50% !important;
+    top: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) !important;
+  }
+}
+
+/* Sidebar submenu (Request group) — when a child route is active, keep parent text
+ * readable on the dark glass background. AntD's default darkens the parent text via
+ * .ant-menu-submenu-selected which becomes unreadable here. Replace it with a subtle
+ * primary-tinted background + colored arrow as the "active" indicator. */
+aside .ant-menu-submenu-selected > .ant-menu-submenu-title {
+  background: rgb(var(--color-primary-500) / 0.12) !important;
+  color: rgb(var(--color-text-primary)) !important;
+}
+aside .ant-menu-submenu-selected > .ant-menu-submenu-title .ant-menu-title-content,
+aside .ant-menu-submenu-selected > .ant-menu-submenu-title > .anticon {
+  color: rgb(var(--color-text-primary)) !important;
+}
+aside .ant-menu-submenu-selected > .ant-menu-submenu-title .ant-menu-submenu-arrow {
+  color: rgb(var(--color-primary-300)) !important;
+}
+aside .ant-menu-submenu-selected > .ant-menu-submenu-title:hover {
+  background: rgb(var(--color-primary-500) / 0.2) !important;
+}
+/* Submenu popup (sidebar collapsed flyout) — same treatment so parent stays readable */
+.ant-menu-submenu-popup .ant-menu-submenu-selected > .ant-menu-submenu-title,
+.ant-menu-submenu-popup .ant-menu-submenu-title {
+  color: rgb(var(--color-text-primary)) !important;
 }

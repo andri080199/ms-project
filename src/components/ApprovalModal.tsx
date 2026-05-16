@@ -137,8 +137,11 @@ function OvertimeDetail({ data }: { data: OvertimeWithUser }) {
   return (
     <Descriptions column={1} size="small" bordered>
       <Descriptions.Item label={t('approvalModal.rowDate')}>{formatDate(data.date)}</Descriptions.Item>
+      <Descriptions.Item label={t('approvalModal.rowOvertimeType')}>
+        {data.overtimeType === 'PREMIUM_SHIFT' ? t('overtime.typePremiumShift') : t('overtime.typeOverdays')}
+      </Descriptions.Item>
       <Descriptions.Item label={t('approvalModal.rowTime')}>
-        {formatTime(data.startTime)} — {formatTime(data.endTime)}
+        {formatTime(data.startTime)}
       </Descriptions.Item>
       <Descriptions.Item label={t('approvalModal.rowDuration')}>{minutesToReadable(data.durationMinutes)}</Descriptions.Item>
       <Descriptions.Item label={t('approvalModal.rowReason')}>{data.reason}</Descriptions.Item>

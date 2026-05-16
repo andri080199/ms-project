@@ -224,6 +224,7 @@ export default function ProfileEditForm({
             className="w-full"
             format="DD MMM YYYY"
             placeholder={t('profile.pickDate')}
+            classNames={{ popup: { root: 'app-date-popup' } }}
             suffixIcon={
               formAge != null ? (
                 <span className="text-xs text-muted">{t('profile.ageSuffixForm', { n: formAge })}</span>
@@ -235,16 +236,36 @@ export default function ProfileEditForm({
 
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
         <Form.Item label={t('profile.labelGender')} name="gender">
-          <Select allowClear placeholder={t('profile.pickSelect')} options={genderOptions} />
+          <Select
+            allowClear
+            placeholder={t('profile.pickSelect')}
+            options={genderOptions}
+            classNames={{ popup: { root: 'app-select-popup' } }}
+          />
         </Form.Item>
         <Form.Item label={t('profile.labelMarital')} name="maritalStatus">
-          <Select allowClear placeholder={t('profile.pickSelect')} options={maritalOptions} />
+          <Select
+            allowClear
+            placeholder={t('profile.pickSelect')}
+            options={maritalOptions}
+            classNames={{ popup: { root: 'app-select-popup' } }}
+          />
         </Form.Item>
         <Form.Item label={t('profile.labelBlood')} name="bloodType">
-          <Select allowClear placeholder={t('profile.pickSelect')} options={BLOOD_OPTIONS} />
+          <Select
+            allowClear
+            placeholder={t('profile.pickSelect')}
+            options={BLOOD_OPTIONS}
+            classNames={{ popup: { root: 'app-select-popup' } }}
+          />
         </Form.Item>
         <Form.Item label={t('profile.labelReligion')} name="religion">
-          <Select allowClear placeholder={t('profile.pickSelect')} options={RELIGION_OPTIONS} />
+          <Select
+            allowClear
+            placeholder={t('profile.pickSelect')}
+            options={RELIGION_OPTIONS}
+            classNames={{ popup: { root: 'app-select-popup' } }}
+          />
         </Form.Item>
       </div>
     </>
@@ -279,7 +300,12 @@ export default function ProfileEditForm({
           <Input placeholder={t('profile.passportPlaceholder')} maxLength={50} />
         </Form.Item>
         <Form.Item label={t('profile.labelPassportExpiry')} name="passportExpiry">
-          <DatePicker className="w-full" format="DD MMM YYYY" placeholder={t('profile.pickDate')} />
+          <DatePicker
+            className="w-full"
+            format="DD MMM YYYY"
+            placeholder={t('profile.pickDate')}
+            classNames={{ popup: { root: 'app-date-popup' } }}
+          />
         </Form.Item>
       </div>
     </>

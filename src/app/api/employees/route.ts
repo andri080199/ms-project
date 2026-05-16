@@ -20,6 +20,7 @@ export async function GET() {
         role: true,
         phone: true,
         department: true,
+        employmentStatus: true,
         position: { select: { id: true, name: true } },
       },
     });

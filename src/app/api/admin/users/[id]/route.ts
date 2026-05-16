@@ -57,11 +57,18 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       }
       data.employeeId = eid;
     }
+    if (Object.prototype.hasOwnProperty.call(data, 'employmentStatus')) {
+      const es = (data.employmentStatus as string | null | undefined);
+      data.employmentStatus = es && es.trim() ? es.trim() : null;
+    }
     if (Object.prototype.hasOwnProperty.call(data, 'birthdate')) {
       data.birthdate = p.birthdate ? new Date(p.birthdate) : null;
     }
     if (Object.prototype.hasOwnProperty.call(data, 'passportExpiry')) {
       data.passportExpiry = p.passportExpiry ? new Date(p.passportExpiry) : null;
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'joinDate')) {
+      data.joinDate = p.joinDate ? new Date(p.joinDate) : null;
     }
     const updated = await prisma.user.update({
       where: { id },

@@ -4,8 +4,9 @@ export const overtimeSchema = z
   .object({
     date: z.string().min(1, 'Tanggal wajib diisi'),
     startTime: z.string().min(1, 'Jam mulai wajib diisi'),
-    endTime: z.string().min(1, 'Jam selesai wajib diisi'),
-    reason: z.string().min(10, 'Alasan minimal 10 karakter').max(1000),
+    overtimeType: z.enum(['PREMIUM_SHIFT', 'OVERDAYS'], { errorMap: () => ({ message: 'Tipe overtime wajib dipilih' }) }),
+    durationMinutes: z.number().int().positive('Durasi harus > 0').max(60 * 24, 'Durasi maksimal 24 jam'),
+    reason: z.string().min(30, 'Alasan minimal 30 karakter').max(1000),
     attachmentUrl: z.string().max(500).optional().nullable().or(z.literal('').transform(() => undefined)),
   })
   .superRefine((val, ctx) => {
@@ -23,14 +24,13 @@ export const overtimeSchema = z
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['date'], message: 'Tanggal tidak boleh lebih dari 14 hari ke depan' });
     }
     const start = new Date(val.startTime);
-    const end = new Date(val.endTime);
-    if (!(end.getTime() > start.getTime())) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['endTime'], message: 'Jam selesai harus setelah jam mulai' });
+    if (Number.isNaN(start.getTime())) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['startTime'], message: 'Jam mulai tidak valid' });
     }
   });
 
 export const reimbursementItemSchema = z.object({
-  category: z.enum(['OFFICE', 'HOTEL', 'TOLL', 'TRANSPORTATION', 'MEAL', 'OTHER']),
+  category: z.enum(['KANDUNGAN', 'KACAMATA', 'GAS_FUEL', 'TRANSPORTATION', 'PARKING', 'CLIENT_ENTERTAINMENT', 'ATK_OFFICE', 'OFFICE_MAINTENANCE', 'TOLL', 'PRODUCT_DEV', 'HOTEL_DINAS', 'MEDICAL_BOD']),
   amount: z.number().int().positive('Jumlah harus > 0'),
   transactionDate: z.string().min(1, 'Tanggal transaksi wajib diisi'),
   description: z.string().min(3, 'Deskripsi minimal 3 karakter').max(500),
@@ -114,19 +114,6 @@ const employeeIdField = z
   .optional()
   .or(z.literal('').transform(() => null));
 
-export const userCreateSchema = z.object({
-  email: z.string().email('Email tidak valid'),
-  name: z.string().min(2, 'Nama minimal 2 karakter').max(100),
-  password: z.string().min(6, 'Password minimal 6 karakter').max(200),
-  role: BASE_ROLE,
-  phone: z.string().max(30).optional().nullable(),
-  positionId: z.string().optional().nullable(),
-  department: z.string().max(100).optional().nullable(),
-  spvId: z.string().optional().nullable(),
-  employeeId: employeeIdField,
-  isSuperAdmin: z.boolean().optional(),
-});
-
 const emptyToNull = z.literal('').transform(() => null);
 const optStr = (max = 500) => z.string().max(max).nullable().optional().or(emptyToNull);
 const optDate = () =>
@@ -139,6 +126,21 @@ const optDate = () =>
       message: 'Tanggal tidak valid',
     });
 
+export const userCreateSchema = z.object({
+  email: z.string().email('Email tidak valid'),
+  name: z.string().min(2, 'Nama minimal 2 karakter').max(100),
+  password: z.string().min(6, 'Password minimal 6 karakter').max(200),
+  role: BASE_ROLE,
+  phone: z.string().max(30).optional().nullable(),
+  positionId: z.string().optional().nullable(),
+  department: z.string().max(100).optional().nullable(),
+  employmentStatus: z.string().max(100).optional().nullable(),
+  spvId: z.string().optional().nullable(),
+  employeeId: employeeIdField,
+  isSuperAdmin: z.boolean().optional(),
+  joinDate: optDate(),
+});
+
 export const userUpdateSchema = z.object({
   email: z.string().email('Email tidak valid').optional(),
   name: z.string().min(2).max(100).optional(),
@@ -147,6 +149,7 @@ export const userUpdateSchema = z.object({
   phone: z.string().max(30).nullable().optional(),
   positionId: z.string().nullable().optional(),
   department: z.string().max(100).nullable().optional(),
+  employmentStatus: z.string().max(100).nullable().optional(),
   spvId: z.string().nullable().optional(),
   employeeId: employeeIdField,
   isSuperAdmin: z.boolean().optional(),
@@ -163,6 +166,7 @@ export const userUpdateSchema = z.object({
   residentialAddress: optStr(500),
   passportNumber: optStr(50),
   passportExpiry: optDate(),
+  joinDate: optDate(),
 });
 
 export const profileUpdateSchema = z.object({

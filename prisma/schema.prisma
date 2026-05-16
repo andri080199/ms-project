@@ -25,12 +25,18 @@ enum RequestStatus {
 }
 
 enum ReimbursementCategory {
-  OFFICE
-  HOTEL
-  TOLL
+  KANDUNGAN
+  KACAMATA
+  GAS_FUEL
   TRANSPORTATION
-  MEAL
-  OTHER
+  PARKING
+  CLIENT_ENTERTAINMENT
+  ATK_OFFICE
+  OFFICE_MAINTENANCE
+  TOLL
+  PRODUCT_DEV
+  HOTEL_DINAS
+  MEDICAL_BOD
 }
 
 enum TripType {
@@ -76,6 +82,11 @@ enum LeaveType {
   OTHER
 }
 
+enum OvertimeType {
+  PREMIUM_SHIFT
+  OVERDAYS
+}
+
 model Position {
   id         String   @id @default(cuid())
   name       String   @unique
@@ -96,6 +107,8 @@ model User {
   isSuperAdmin   Boolean                @default(false)
   phone          String?
   department     String?
+  employmentStatus String?
+  joinDate       DateTime?
   positionId     String?
   position       Position?              @relation(fields: [positionId], references: [id])
   spvId          String?
@@ -145,8 +158,9 @@ model OvertimeRequest {
   user            User              @relation(fields: [userId], references: [id])
   date            DateTime
   startTime       DateTime
-  endTime         DateTime
+  endTime         DateTime?
   durationMinutes Int
+  overtimeType    OvertimeType      @default(PREMIUM_SHIFT)
   reason          String
   attachmentUrl   String?
   status          RequestStatus     @default(SUBMITTED)

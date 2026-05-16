@@ -2,43 +2,44 @@
  * Single source of truth for color tokens.
  * Mirrored as CSS variables in globals.css — keep both in sync.
  *
- * Palette: teal/mint forest derived from
- *   #1F6F5F (dark teal) · #2FA084 (medium teal) · #6FCF97 (mint) · #EEEEEE (off-white)
+ * Palette: violet/iris derived from
+ *   #372463 (deep violet) · #5F5082 (medium iris) · #736692 (soft lavender)
  */
 
 export const colors = {
   primary: {
-    50: '#E8F5F0',
-    100: '#C9EAD9',
-    200: '#A8DDC2',
-    300: '#6FCF97',
-    400: '#4ABA90',
-    500: '#2FA084',
-    600: '#258870',
-    700: '#1F6F5F',
-    800: '#185548',
-    900: '#0F3C33',
+    50: '#F2F0F7',
+    100: '#E0DAEC',
+    200: '#BFB5CE',
+    300: '#9990AD',
+    400: '#7A6F92',
+    500: '#736692',
+    600: '#685B82',
+    700: '#5F5082',
+    800: '#4B377A',
+    900: '#372463',
   },
+  secondary: '#4B3A73',
   accent: {
-    fuchsia: '#2FA084',
-    cyan: '#6EC7C0',
-    mint: '#6FCF97',
+    fuchsia: '#5F5082',
+    cyan: '#9990AD',
+    mint: '#736692',
   },
   bg: {
-    base: '#EEEEEE',
-    canvas1: '#F4F8F6',
-    canvas2: '#E8F1ED',
-    canvas3: '#DCE9E3',
-    elevated: '#133D34',     // dark teal, used as glass card tint
-    overlay: '#050F0D',
+    base: '#EEEDF2',
+    canvas1: '#F5F3FA',
+    canvas2: '#ECE8F2',
+    canvas3: '#DFD9EA',
+    elevated: '#372463',     // deep violet, used as glass card tint
+    overlay: '#1F1538',
   },
   text: {
     primary: '#EEEEEE',           // light, used INSIDE dark glass cards
-    secondary: '#C5D0CC',         // light secondary, inside cards
-    muted: '#8AA39C',             // light muted, inside cards
-    onCanvas: '#0F3C33',          // dark, used directly on body
-    onCanvasMuted: '#5A746B',     // dark muted, on body
-    inverse: '#0A1F1A',
+    secondary: '#CFC9DA',         // light secondary, inside cards
+    muted: '#948AAA',             // light muted, inside cards
+    onCanvas: '#372463',          // dark violet, used directly on body
+    onCanvasMuted: '#5F5082',     // muted iris on body
+    inverse: '#1F1538',
   },
   status: {
     success: '#2FA084',
@@ -49,7 +50,7 @@ export const colors = {
 } as const;
 
 export const semantic = {
-  primary: colors.primary[500],
+  primary: colors.primary[900],
   primaryLight: colors.primary[300],
-  primaryDark: colors.primary[700],
+  primaryDark: colors.primary[900],
 } as const;

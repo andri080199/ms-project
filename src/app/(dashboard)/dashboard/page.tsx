@@ -4,6 +4,7 @@ import { Button, Skeleton, Typography } from 'antd';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import GlassCard from '@/components/GlassCard';
+import PageHeader, { PageTitle } from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
 import {
   ClockCircleOutlined,
@@ -40,22 +41,25 @@ export default function DashboardPage() {
   const t = useT();
 
   useEffect(() => {
+    const ctrl = new AbortController();
     (async () => {
-      const res = await fetch('/api/dashboard', { cache: 'no-store' });
-      const json = await res.json();
-      if (json.success) setData(json.data);
-      setLoading(false);
+      try {
+        const res = await fetch('/api/dashboard', { cache: 'no-store', signal: ctrl.signal });
+        const json = await res.json();
+        if (json.success) setData(json.data);
+        setLoading(false);
+      } catch (err) {
+        if ((err as { name?: string })?.name !== 'AbortError') setLoading(false);
+      }
     })();
+    return () => ctrl.abort();
   }, []);
 
   return (
     <div className="space-y-6">
-      <div>
-        <Title level={2} style={{ margin: 0, color: 'rgb(var(--color-text-on-canvas))' }}>
-          {t('dashboard.title')}
-        </Title>
-        <Text className="text-muted">{t('dashboard.subtitle')}</Text>
-      </div>
+      <PageHeader>
+        <PageTitle title={t('dashboard.title')} subtitle={t('dashboard.subtitle')} />
+      </PageHeader>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
         <SummaryCard label={t('dashboard.summaryPending')} value={loading ? undefined : data?.pending ?? 0} tone="amber" />
@@ -76,7 +80,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="hidden md:grid md:grid-cols-3 gap-4">
         <QuickAction href="/overtime/new" icon={<ClockCircleOutlined />} label={t('dashboard.quickOvertime')} subtitle={t('dashboard.quickSubtitle')} />
         <QuickAction href="/reimbursement/new" icon={<WalletOutlined />} label={t('dashboard.quickReimbursement')} subtitle={t('dashboard.quickSubtitle')} />
         <QuickAction href="/business-trip/new" icon={<CarOutlined />} label={t('dashboard.quickTrip')} subtitle={t('dashboard.quickSubtitle')} />
@@ -162,29 +166,29 @@ function SummaryCard({
   const t = toneMap[tone];
   return (
     <div
-      className="p-5 rounded-2xl transition-transform hover:-translate-y-0.5"
+      className="p-3 md:p-5 rounded-2xl transition-transform hover:-translate-y-0.5 min-w-0 overflow-hidden"
       style={{
         background: t.bg,
         border: `1px solid ${t.border}`,
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
-        boxShadow: '0 8px 20px -10px rgba(15, 60, 51, 0.18)',
+        boxShadow: '0 8px 20px -10px rgba(55, 36, 99, 0.18)',
       }}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 min-w-0">
         <span
-          className="inline-block rounded-full"
+          className="inline-block rounded-full shrink-0"
           style={{ width: 8, height: 8, background: t.dot }}
         />
         <div
-          className="text-xs font-medium"
+          className="text-[11px] md:text-xs font-medium truncate"
           style={{ color: 'rgb(var(--color-text-on-canvas-muted))' }}
         >
           {label}
         </div>
       </div>
       <div
-        className="text-2xl font-bold mt-2"
+        className="text-base md:text-2xl font-bold mt-1.5 md:mt-2 leading-tight break-all md:break-normal"
         style={{ color: t.value }}
       >
         {value === undefined ? <Skeleton.Input active size="small" /> : value}
@@ -206,18 +210,18 @@ function QuickAction({
 }) {
   return (
     <Link href={href} className="block">
-      <GlassCard hover className="p-4 flex items-center gap-3">
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-lg"
-          style={{ background: 'var(--gradient-brand)' }}
+      <GlassCard hover className="p-3 flex items-center gap-2.5">
+        <span
+          className="inline-flex items-center justify-center shrink-0"
+          style={{ width: 24, height: 24, color: '#fff', fontSize: 16 }}
         >
           {icon}
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-sm leading-tight truncate">{label}</div>
+          <div className="text-[11px] text-muted truncate">{subtitle}</div>
         </div>
-        <div className="flex-1">
-          <div className="font-semibold">{label}</div>
-          <div className="text-xs text-muted">{subtitle}</div>
-        </div>
-        <Button type="text" icon={<PlusOutlined />} />
+        <Button type="text" size="small" icon={<PlusOutlined />} />
       </GlassCard>
     </Link>
   );

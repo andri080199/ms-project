@@ -1,16 +1,21 @@
 'use client';
 
-import { Empty, Pagination, Segmented, Skeleton, Tabs, Typography } from 'antd';
+import { Button, DatePicker, Dropdown, Empty, Segmented, Skeleton, Table, Tabs } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import {
   ClockCircleOutlined,
   WalletOutlined,
   CalendarOutlined,
   CompassOutlined,
-  CheckCircleFilled,
-  CloseCircleFilled,
+  DownOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
+import dayjs, { type Dayjs } from 'dayjs';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import GlassCard from '@/components/GlassCard';
+
+const { RangePicker } = DatePicker;
+import PageHeader, { PageTitle } from '@/components/PageHeader';
+import ColTitle from '@/components/ColTitle';
 import StatusBadge from '@/components/StatusBadge';
 import ApprovalModal from '@/components/ApprovalModal';
 import { formatDate, formatDateTime, formatRupiah, formatTime } from '@/lib/utils';
@@ -23,30 +28,28 @@ import {
 } from '@/lib/types';
 import { useFormatters, useT } from '@/lib/i18n/provider';
 
-const { Title, Text } = Typography;
-
 type KindMeta = { icon: ReactNode; tone: string; bg: string; labelKey: string };
 const KIND_META: Record<InboxItem['kind'], KindMeta> = {
   overtime: {
-    icon: <ClockCircleOutlined style={{ fontSize: 20 }} />,
-    tone: 'rgb(var(--color-warning))',
-    bg: 'rgb(var(--color-warning) / 0.15)',
+    icon: <ClockCircleOutlined />,
+    tone: 'rgb(var(--color-success))',
+    bg: 'rgb(var(--color-success) / 0.18)',
     labelKey: 'approvals.kindOvertime',
   },
   reimbursement: {
-    icon: <WalletOutlined style={{ fontSize: 20 }} />,
-    tone: 'rgb(var(--color-accent-mint))',
-    bg: 'rgb(var(--color-accent-mint) / 0.15)',
+    icon: <WalletOutlined />,
+    tone: 'rgb(var(--color-success))',
+    bg: 'rgb(var(--color-success) / 0.18)',
     labelKey: 'approvals.kindReimbursement',
   },
   'business-trip': {
-    icon: <CompassOutlined style={{ fontSize: 20 }} />,
-    tone: 'rgb(var(--color-info))',
-    bg: 'rgb(var(--color-info) / 0.15)',
+    icon: <CompassOutlined />,
+    tone: 'rgb(var(--color-success))',
+    bg: 'rgb(var(--color-success) / 0.18)',
     labelKey: 'approvals.kindTrip',
   },
   leave: {
-    icon: <CalendarOutlined style={{ fontSize: 20 }} />,
+    icon: <CalendarOutlined />,
     tone: 'rgb(var(--color-primary-light))',
     bg: 'rgb(var(--color-primary-light) / 0.15)',
     labelKey: 'approvals.kindLeave',
@@ -73,8 +76,19 @@ type HistoryRow = {
 };
 
 type KindFilter = 'all' | InboxItem['kind'];
-type ActionFilter = 'all' | 'APPROVE' | 'REJECT';
-const HISTORY_PAGE_SIZE = 10;
+type StatusFilter = 'all' | 'DONE' | 'REJECTED';
+type DateRange = [Dayjs | null, Dayjs | null] | null;
+
+type PendingTableRow = {
+  rowKey: string;
+  item: InboxItem;
+};
+
+type HistoryTableRow = {
+  rowKey: string;
+  h: HistoryRow;
+  item: InboxItem;
+};
 
 export default function ApprovalsPage() {
   const [tab, setTab] = useState<'pending' | 'history'>('pending');
@@ -83,35 +97,57 @@ export default function ApprovalsPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<InboxItem | null>(null);
   const [kindFilter, setKindFilter] = useState<KindFilter>('all');
-  const [actionFilter, setActionFilter] = useState<ActionFilter>('all');
-  const [historyPage, setHistoryPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [periodRange, setPeriodRange] = useState<DateRange>(null);
+  const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
   const t = useT();
+  const { minutesToReadable, pluralDays } = useFormatters();
 
-  async function load(active: 'pending' | 'history') {
+  useEffect(() => {
+    setScrollEl(document.getElementById('page-scroll'));
+  }, []);
+
+  async function load(active: 'pending' | 'history', signal?: AbortSignal) {
     setLoading(true);
     try {
-      const res = await fetch(`/api/approvals?tab=${active}`, { cache: 'no-store' });
+      const res = await fetch(`/api/approvals?tab=${active}`, { cache: 'no-store', signal });
       const json = await res.json();
       if (json.success) {
         if (active === 'pending') setPending(json.data);
         else setHistory(json.data.history);
       }
+    } catch (err) {
+      if ((err as { name?: string })?.name === 'AbortError') return;
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    load(tab);
+    const ctrl = new AbortController();
+    load(tab, ctrl.signal);
+    return () => ctrl.abort();
   }, [tab]);
 
-  const pendingItems: InboxItem[] = useMemo(() => {
+  const pendingRows: PendingTableRow[] = useMemo(() => {
     if (!pending) return [];
     return [
-      ...pending.overtimes.map((o) => ({ kind: 'overtime' as const, data: o })),
-      ...pending.trips.map((trip) => ({ kind: 'business-trip' as const, data: trip })),
-      ...pending.reimbursements.map((r) => ({ kind: 'reimbursement' as const, data: r })),
-      ...(pending.leaves ?? []).map((l) => ({ kind: 'leave' as const, data: l })),
+      ...pending.overtimes.map((o) => ({
+        rowKey: `overtime-${o.id}`,
+        item: { kind: 'overtime' as const, data: o },
+      })),
+      ...pending.trips.map((trip) => ({
+        rowKey: `business-trip-${trip.id}`,
+        item: { kind: 'business-trip' as const, data: trip },
+      })),
+      ...pending.reimbursements.map((r) => ({
+        rowKey: `reimbursement-${r.id}`,
+        item: { kind: 'reimbursement' as const, data: r },
+      })),
+      ...(pending.leaves ?? []).map((l) => ({
+        rowKey: `leave-${l.id}`,
+        item: { kind: 'leave' as const, data: l },
+      })),
     ];
   }, [pending]);
 
@@ -123,130 +159,421 @@ export default function ApprovalsPage() {
     return null;
   }
 
-  const filteredHistory = useMemo(() => {
+  const historyRows: HistoryTableRow[] = useMemo(() => {
     if (!history) return [];
-    return history.filter((h) => {
-      if (kindFilter !== 'all' && historyKind(h) !== kindFilter) return false;
-      if (actionFilter !== 'all' && h.action !== actionFilter) return false;
-      return true;
+    const periodStartMs = periodRange?.[0]?.startOf('day').valueOf() ?? null;
+    const periodEndMs = periodRange?.[1]?.endOf('day').valueOf() ?? null;
+    const rows: HistoryTableRow[] = [];
+    for (const h of history) {
+      if (kindFilter !== 'all' && historyKind(h) !== kindFilter) continue;
+      const item: InboxItem | null = h.overtime
+        ? { kind: 'overtime', data: h.overtime }
+        : h.reimbursement
+        ? { kind: 'reimbursement', data: h.reimbursement }
+        : h.trip
+        ? { kind: 'business-trip', data: h.trip }
+        : h.leave
+        ? { kind: 'leave', data: h.leave }
+        : null;
+      if (!item) continue;
+      if (statusFilter !== 'all' && item.data.status !== statusFilter) continue;
+      if (periodStartMs !== null && periodEndMs !== null) {
+        const ms = dayjs(h.createdAt).valueOf();
+        if (ms < periodStartMs || ms > periodEndMs) continue;
+      }
+      rows.push({ rowKey: h.id, h, item });
+    }
+    return rows;
+  }, [history, kindFilter, statusFilter, periodRange]);
+
+  function handleDownloadCsv() {
+    if (!periodRange || !periodRange[0] || !periodRange[1]) return;
+    if (historyRows.length === 0) return;
+    const headers = [
+      t('approvals.colType'),
+      t('approvals.colEmployee'),
+      t('approvals.colDept'),
+      t('approvals.colStatus'),
+      t('approvals.colDate'),
+      t('approvals.colDetail'),
+      t('approvals.colComment'),
+    ];
+    const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = historyRows.map((r) => {
+      const cells = [
+        t(KIND_META[r.item.kind].labelKey),
+        r.item.data.user.name,
+        r.item.data.user.department ?? '',
+        r.item.data.status,
+        formatDateTime(r.h.createdAt),
+        buildDetailText(r.item, t, minutesToReadable, pluralDays),
+        r.h.comment ?? '',
+      ];
+      return cells.map(escape).join(',');
     });
-  }, [history, kindFilter, actionFilter]);
+    const csv = [headers.map(escape).join(','), ...lines].join('\r\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const startTag = periodRange[0].format('YYYYMMDD');
+    const endTag = periodRange[1].format('YYYYMMDD');
+    a.download = `approval-history-${startTag}-${endTag}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 
-  const pagedHistory = useMemo(() => {
-    const start = (historyPage - 1) * HISTORY_PAGE_SIZE;
-    return filteredHistory.slice(start, start + HISTORY_PAGE_SIZE);
-  }, [filteredHistory, historyPage]);
+  const firstColCellStyle = { paddingLeft: 24 } as const;
 
-  useEffect(() => {
-    setHistoryPage(1);
-  }, [kindFilter, actionFilter, tab]);
+  const pendingColumns: ColumnsType<PendingTableRow> = useMemo(
+    () => [
+      {
+        title: <ColTitle label={t('approvals.colType')} />,
+        key: 'type',
+        width: 170,
+        onHeaderCell: () => ({ style: firstColCellStyle }),
+        onCell: () => ({ style: firstColCellStyle }),
+        render: (_, r) => <KindTag kind={r.item.kind} />,
+      },
+      {
+        title: <ColTitle label={t('approvals.colEmployee')} />,
+        key: 'employee',
+        width: 200,
+        render: (_, r) => (
+          <div className="min-w-0">
+            <div className="font-semibold truncate">{r.item.data.user.name}</div>
+            {r.item.data.user.department && (
+              <div className="text-xs text-muted truncate">{r.item.data.user.department}</div>
+            )}
+          </div>
+        ),
+      },
+      {
+        title: <ColTitle label={t('approvals.colDetail')} />,
+        key: 'detail',
+        render: (_, r) => renderDetail(r.item, t, minutesToReadable, pluralDays),
+      },
+      {
+        title: <ColTitle label={t('approvals.colStatus')} />,
+        key: 'status',
+        width: 140,
+        render: (_, r) => <StatusBadge status={r.item.data.status} />,
+      },
+    ],
+    [t, minutesToReadable, pluralDays],
+  );
+
+  const historyColumns: ColumnsType<HistoryTableRow> = useMemo(
+    () => [
+      {
+        title: <ColTitle label={t('approvals.colType')} />,
+        key: 'type',
+        width: 170,
+        onHeaderCell: () => ({ style: firstColCellStyle }),
+        onCell: () => ({ style: firstColCellStyle }),
+        render: (_, r) => <KindTag kind={r.item.kind} />,
+      },
+      {
+        title: <ColTitle label={t('approvals.colEmployee')} />,
+        key: 'employee',
+        width: 180,
+        render: (_, r) => (
+          <div className="min-w-0">
+            <div className="font-semibold truncate">{r.item.data.user.name}</div>
+            {r.item.data.user.department && (
+              <div className="text-xs text-muted truncate">{r.item.data.user.department}</div>
+            )}
+          </div>
+        ),
+      },
+      {
+        title: <ColTitle label={t('approvals.colStatus')} />,
+        key: 'status',
+        width: 150,
+        render: (_, r) => <StatusBadge status={r.item.data.status} />,
+      },
+      {
+        title: <ColTitle label={t('approvals.colDate')} />,
+        key: 'date',
+        width: 160,
+        render: (_, r) => (
+          <span className="text-xs text-muted">{formatDateTime(r.h.createdAt)}</span>
+        ),
+      },
+      {
+        title: <ColTitle label={t('approvals.colComment')} />,
+        key: 'comment',
+        render: (_, r) =>
+          r.h.comment ? (
+            <span className="text-xs italic line-clamp-2">“{r.h.comment}”</span>
+          ) : (
+            <span className="text-xs text-muted">—</span>
+          ),
+      },
+    ],
+    [t],
+  );
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Title level={2} style={{ margin: 0, color: 'rgb(var(--color-text-on-canvas))' }}>
-          {t('approvals.title')}
-        </Title>
-        <Text className="text-muted">{t('approvals.subtitle')}</Text>
-      </div>
+    <div className="space-y-5 md:space-y-6 px-1 md:px-2">
+      <PageHeader>
+        <PageTitle title={t('approvals.title')} subtitle={t('approvals.subtitle')} />
+        <div className="approvals-header-nav">
+          <Tabs
+            activeKey={tab}
+            onChange={(k) => setTab(k as 'pending' | 'history')}
+            items={[
+              { key: 'pending', label: t('approvals.tabPending') },
+              { key: 'history', label: t('approvals.tabHistory') },
+            ]}
+          />
 
-      <Tabs
-        activeKey={tab}
-        onChange={(k) => setTab(k as 'pending' | 'history')}
-        items={[
-          { key: 'pending', label: t('approvals.tabPending') },
-          { key: 'history', label: t('approvals.tabHistory') },
-        ]}
-      />
+          {tab === 'history' && (() => {
+        const kindOptions = [
+          { label: t('approvals.filterAll'), value: 'all' as const },
+          { label: t('approvals.filterOvertime'), value: 'overtime' as const },
+          { label: t('approvals.filterReimb'), value: 'reimbursement' as const },
+          { label: t('approvals.filterTrip'), value: 'business-trip' as const },
+          { label: t('approvals.filterLeave'), value: 'leave' as const },
+        ];
+        const statusOptions = [
+          { label: t('approvals.filterAll'), value: 'all' as const },
+          { label: t('approvals.filterApproved'), value: 'DONE' as const },
+          { label: t('approvals.filterRejected'), value: 'REJECTED' as const },
+        ];
+        const kindLabel = kindOptions.find((o) => o.value === kindFilter)?.label ?? '';
+        const statusLabel = statusOptions.find((o) => o.value === statusFilter)?.label ?? '';
+        const counter = history ? (
+          <span className="approvals-filter-counter">
+            {t('approvals.counter', { shown: historyRows.length, total: history.length })}
+          </span>
+        ) : null;
+        const rangeReady = !!(periodRange && periodRange[0] && periodRange[1]);
+        const downloadDisabled = !rangeReady || historyRows.length === 0;
+        const downloadTitle = !rangeReady
+          ? t('approvals.downloadRangeRequired')
+          : historyRows.length === 0
+          ? t('approvals.downloadRangeEmpty')
+          : undefined;
+        const downloadLabel = rangeReady
+          ? `${t('approvals.downloadCsv')} (${historyRows.length})`
+          : t('approvals.downloadCsv');
+
+        return (
+          <>
+            {/* Desktop: glass panel with segmented pills */}
+            <div className="approvals-filters approvals-filters-desktop glass">
+              <Segmented<KindFilter>
+                value={kindFilter}
+                onChange={(v) => setKindFilter(v)}
+                options={kindOptions}
+              />
+              <Segmented<StatusFilter>
+                value={statusFilter}
+                onChange={(v) => setStatusFilter(v)}
+                options={statusOptions}
+              />
+              <RangePicker
+                value={periodRange as never}
+                onChange={(v) => setPeriodRange(v as DateRange)}
+                format="DD MMM YYYY"
+                placeholder={[
+                  t('approvals.periodPlaceholderStart'),
+                  t('approvals.periodPlaceholderEnd'),
+                ]}
+                allowClear
+                classNames={{ popup: { root: 'app-date-popup' } }}
+                className="approvals-period-picker"
+              />
+              <Button
+                type="primary"
+                icon={<DownloadOutlined />}
+                onClick={handleDownloadCsv}
+                disabled={downloadDisabled}
+                title={downloadTitle}
+                className="approvals-download-btn"
+              >
+                {downloadLabel}
+              </Button>
+              {counter}
+            </div>
+            {/* Mobile: inline dropdown triggers + period range + download */}
+            <div className="approvals-filters-mobile">
+              <div className="filter-field">
+                <span className="filter-field-label">{t('approvals.filterTypeLabel')}</span>
+                <Dropdown
+                  trigger={['click']}
+                  overlayClassName="approvals-filter-menu"
+                  menu={{
+                    selectedKeys: [kindFilter],
+                    items: kindOptions.map((o) => ({ key: o.value, label: o.label })),
+                    onClick: ({ key }) => setKindFilter(key as KindFilter),
+                  }}
+                >
+                  <button type="button" className="filter-trigger">
+                    <span className="filter-trigger-value">{kindLabel}</span>
+                    <DownOutlined className="filter-trigger-chevron" />
+                  </button>
+                </Dropdown>
+              </div>
+              <div className="filter-field">
+                <span className="filter-field-label">{t('approvals.filterStatusLabel')}</span>
+                <Dropdown
+                  trigger={['click']}
+                  overlayClassName="approvals-filter-menu"
+                  menu={{
+                    selectedKeys: [statusFilter],
+                    items: statusOptions.map((o) => ({ key: o.value, label: o.label })),
+                    onClick: ({ key }) => setStatusFilter(key as StatusFilter),
+                  }}
+                >
+                  <button type="button" className="filter-trigger">
+                    <span className="filter-trigger-value">{statusLabel}</span>
+                    <DownOutlined className="filter-trigger-chevron" />
+                  </button>
+                </Dropdown>
+              </div>
+              <div className="filter-field filter-field-period">
+                <span className="filter-field-label">{t('approvals.filterPeriodLabel')}</span>
+                <RangePicker
+                  value={periodRange as never}
+                  onChange={(v) => setPeriodRange(v as DateRange)}
+                  format="DD/MM"
+                  placeholder={['start', 'end']}
+                  allowClear
+                  size="small"
+                  inputReadOnly
+                  classNames={{ popup: { root: 'app-date-popup approvals-period-popup-mobile' } }}
+                />
+              </div>
+              <Button
+                type="primary"
+                size="small"
+                icon={<DownloadOutlined />}
+                onClick={handleDownloadCsv}
+                disabled={downloadDisabled}
+                className="approvals-download-btn approvals-download-btn-mobile"
+              >
+                {downloadLabel}
+              </Button>
+              {counter}
+            </div>
+          </>
+        );
+          })()}
+        </div>
+      </PageHeader>
 
       {loading ? (
-        <GlassCard className="p-6">
+        <div className="glass p-6">
           <Skeleton active paragraph={{ rows: 5 }} />
-        </GlassCard>
+        </div>
       ) : tab === 'pending' ? (
-        pendingItems.length === 0 ? (
-          <GlassCard className="p-10 flex items-center justify-center">
+        pendingRows.length === 0 ? (
+          <div className="glass p-10 flex items-center justify-center">
             <Empty description={<span className="text-muted">{t('approvals.emptyPending')}</span>} />
-          </GlassCard>
+          </div>
         ) : (
-          <div className="flex flex-col gap-3 stagger">
-            {pendingItems.map((it) => (
-              <PendingRow
-                key={`${it.kind}-${it.data.id}`}
-                item={it}
-                onClick={() => setSelected(it)}
+          <>
+            <div className="glass requests-table-card approvals-table-desktop">
+              <Table<PendingTableRow>
+                dataSource={pendingRows}
+                columns={pendingColumns}
+                rowKey="rowKey"
+                size="middle"
+                pagination={{ pageSize: 10, showSizeChanger: false }}
+                scroll={{ x: 760 }}
+                sticky={scrollEl ? { offsetHeader: 0, getContainer: () => scrollEl } : false}
+                onRow={(r) => ({
+                  onClick: () => setSelected(r.item),
+                  style: { cursor: 'pointer' },
+                })}
               />
+            </div>
+            <div className="approvals-cards-mobile glass">
+              {pendingRows.map((r) => (
+                <button
+                  key={r.rowKey}
+                  type="button"
+                  onClick={() => setSelected(r.item)}
+                  className="approval-card"
+                >
+                  <div className="approval-card-top">
+                    <KindTag kind={r.item.kind} />
+                    <StatusBadge status={r.item.data.status} />
+                  </div>
+                  <div className="approval-card-emp">
+                    <div className="approval-card-name">{r.item.data.user.name}</div>
+                    {r.item.data.user.department && (
+                      <div className="approval-card-dept">{r.item.data.user.department}</div>
+                    )}
+                  </div>
+                  <div className="approval-card-detail">
+                    {renderDetail(r.item, t, minutesToReadable, pluralDays)}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
+        )
+      ) : historyRows.length === 0 ? (
+        <div className="glass p-10 flex items-center justify-center">
+          <Empty
+            description={
+              <span className="text-muted">
+                {(history ?? []).length === 0 ? t('approvals.emptyHistory') : t('approvals.emptyFilter')}
+              </span>
+            }
+          />
+        </div>
+      ) : (
+        <>
+          <div className="glass requests-table-card approvals-table-desktop">
+            <Table<HistoryTableRow>
+              dataSource={historyRows}
+              columns={historyColumns}
+              rowKey="rowKey"
+              size="middle"
+              pagination={{ pageSize: 10, showSizeChanger: false }}
+              scroll={{ x: 920 }}
+              sticky={scrollEl ? { offsetHeader: 0, getContainer: () => scrollEl } : false}
+              onRow={(r) => ({
+                onClick: () => setSelected(r.item),
+                style: { cursor: 'pointer' },
+              })}
+            />
+          </div>
+          <div className="approvals-cards-mobile glass">
+            {historyRows.map((r) => (
+              <button
+                key={r.rowKey}
+                type="button"
+                onClick={() => setSelected(r.item)}
+                className="approval-card"
+              >
+                <div className="approval-card-top">
+                  <KindTag kind={r.item.kind} />
+                  <StatusBadge status={r.item.data.status} />
+                </div>
+                <div className="approval-card-emp">
+                  <div className="approval-card-name">{r.item.data.user.name}</div>
+                  {r.item.data.user.department && (
+                    <div className="approval-card-dept">{r.item.data.user.department}</div>
+                  )}
+                </div>
+                <div className="approval-card-detail">
+                  {renderDetail(r.item, t, minutesToReadable, pluralDays)}
+                </div>
+                <div className="approval-card-date">{formatDateTime(r.h.createdAt)}</div>
+                {r.h.comment && (
+                  <div className="approval-card-comment">“{r.h.comment}”</div>
+                )}
+              </button>
             ))}
           </div>
-        )
-      ) : (history ?? []).length === 0 ? (
-        <GlassCard className="p-10 flex items-center justify-center">
-          <Empty description={<span className="text-muted">{t('approvals.emptyHistory')}</span>} />
-        </GlassCard>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <Segmented<KindFilter>
-              value={kindFilter}
-              onChange={(v) => setKindFilter(v)}
-              options={[
-                { label: t('approvals.filterAll'), value: 'all' },
-                { label: t('approvals.filterOvertime'), value: 'overtime' },
-                { label: t('approvals.filterReimb'), value: 'reimbursement' },
-                { label: t('approvals.filterTrip'), value: 'business-trip' },
-                { label: t('approvals.filterLeave'), value: 'leave' },
-              ]}
-            />
-            <Segmented<ActionFilter>
-              value={actionFilter}
-              onChange={(v) => setActionFilter(v)}
-              options={[
-                { label: t('approvals.filterAll'), value: 'all' },
-                { label: t('approvals.filterApproved'), value: 'APPROVE' },
-                { label: t('approvals.filterRejected'), value: 'REJECT' },
-              ]}
-            />
-            <Text className="text-muted text-xs ml-auto">
-              {t('approvals.counter', { shown: filteredHistory.length, total: history!.length })}
-            </Text>
-          </div>
-
-          {filteredHistory.length === 0 ? (
-            <GlassCard className="p-10 flex items-center justify-center">
-              <Empty description={<span className="text-muted">{t('approvals.emptyFilter')}</span>} />
-            </GlassCard>
-          ) : (
-            <>
-              <div className="flex flex-col gap-3 stagger">
-                {pagedHistory.map((h) => {
-                  const item: InboxItem | null = h.overtime
-                    ? { kind: 'overtime', data: h.overtime }
-                    : h.reimbursement
-                    ? { kind: 'reimbursement', data: h.reimbursement }
-                    : h.trip
-                    ? { kind: 'business-trip', data: h.trip }
-                    : h.leave
-                    ? { kind: 'leave', data: h.leave }
-                    : null;
-                  if (!item) return null;
-                  return <HistoryItem key={h.id} h={h} item={item} onClick={() => setSelected(item)} />;
-                })}
-              </div>
-
-              {filteredHistory.length > HISTORY_PAGE_SIZE && (
-                <div className="flex justify-center pt-2">
-                  <Pagination
-                    current={historyPage}
-                    pageSize={HISTORY_PAGE_SIZE}
-                    total={filteredHistory.length}
-                    showSizeChanger={false}
-                    onChange={setHistoryPage}
-                  />
-                </div>
-              )}
-            </>
-          )}
-        </div>
+        </>
       )}
 
       <ApprovalModal
@@ -263,60 +590,39 @@ export default function ApprovalsPage() {
   );
 }
 
-function PendingRow({ item, onClick }: { item: InboxItem; onClick: () => void }) {
-  const meta = KIND_META[item.kind];
+function KindTag({ kind }: { kind: InboxItem['kind'] }) {
+  const meta = KIND_META[kind];
   const t = useT();
   return (
-    <GlassCard hover className="p-4 md:p-5 cursor-pointer">
-      <div onClick={onClick} className="flex flex-col md:flex-row md:items-center gap-4">
-        <div className="flex items-center gap-4 flex-1 min-w-0">
-          <div
-            className="flex items-center justify-center rounded-xl flex-shrink-0"
-            style={{
-              width: 48,
-              height: 48,
-              background: meta.bg,
-              border: `1px solid ${meta.tone}33`,
-              color: meta.tone,
-            }}
-          >
-            {meta.icon}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span
-                className="text-[11px] font-bold uppercase tracking-wider"
-                style={{ color: meta.tone }}
-              >
-                {t(meta.labelKey)}
-              </span>
-              <span className="text-muted">·</span>
-              <span className="font-semibold truncate">{item.data.user.name}</span>
-              {item.data.user.department && (
-                <span className="text-xs text-muted">({item.data.user.department})</span>
-              )}
-            </div>
-            <div className="mt-1.5 text-sm">
-              <PendingDetail item={item} />
-            </div>
-          </div>
-        </div>
-        <div className="md:flex-shrink-0">
-          <StatusBadge status={item.data.status} />
-        </div>
-      </div>
-    </GlassCard>
+    <span
+      className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-semibold whitespace-nowrap"
+      style={{
+        background: meta.bg,
+        color: meta.tone,
+        border: `1px solid ${meta.tone}33`,
+      }}
+    >
+      <span style={{ fontSize: 12, lineHeight: 1 }}>{meta.icon}</span>
+      {t(meta.labelKey)}
+    </span>
   );
 }
 
-function PendingDetail({ item }: { item: InboxItem }) {
-  const t = useT();
-  const { minutesToReadable, pluralDays } = useFormatters();
+function renderDetail(
+  item: InboxItem,
+  t: (k: string) => string,
+  minutesToReadable: (m: number) => string,
+  pluralDays: (n: number) => string,
+): ReactNode {
   if (item.kind === 'overtime') {
     return (
-      <div className="space-y-0.5">
-        <div>
-          {formatDate(item.data.date)} · {formatTime(item.data.startTime)} — {formatTime(item.data.endTime)}
+      <div className="space-y-0.5 min-w-0">
+        <div className="text-sm">
+          {formatDate(item.data.date)} ·{' '}
+          {item.data.overtimeType === 'PREMIUM_SHIFT'
+            ? t('overtime.typePremiumShift')
+            : t('overtime.typeOverdays')}{' '}
+          · {formatTime(item.data.startTime)}
           <span className="text-muted"> · {minutesToReadable(item.data.durationMinutes)}</span>
         </div>
         <div className="text-xs text-muted line-clamp-1">{item.data.reason}</div>
@@ -325,8 +631,8 @@ function PendingDetail({ item }: { item: InboxItem }) {
   }
   if (item.kind === 'business-trip') {
     return (
-      <div className="space-y-0.5">
-        <div>
+      <div className="space-y-0.5 min-w-0">
+        <div className="text-sm">
           {item.data.destination} · {formatDate(item.data.startDate)} — {formatDate(item.data.endDate)}
         </div>
         <div className="text-xs text-muted line-clamp-1">{item.data.purpose}</div>
@@ -335,8 +641,8 @@ function PendingDetail({ item }: { item: InboxItem }) {
   }
   if (item.kind === 'reimbursement') {
     return (
-      <div className="space-y-0.5">
-        <div className="font-semibold">{formatRupiah(item.data.totalAmount)}</div>
+      <div className="space-y-0.5 min-w-0">
+        <div className="text-sm font-semibold">{formatRupiah(item.data.totalAmount)}</div>
         <div className="text-xs text-muted">
           {item.data.items.length} {t('approvals.itemsSuffix')}
         </div>
@@ -344,10 +650,10 @@ function PendingDetail({ item }: { item: InboxItem }) {
     );
   }
   return (
-    <div className="space-y-0.5">
-      <div>
-        {t(`leaveType.${item.data.leaveType}`)} ·{' '}
-        {formatDate(item.data.startDate)} — {formatDate(item.data.endDate)}
+    <div className="space-y-0.5 min-w-0">
+      <div className="text-sm">
+        {t(`leaveType.${item.data.leaveType}`)} · {formatDate(item.data.startDate)} —{' '}
+        {formatDate(item.data.endDate)}
         <span className="text-muted"> · {pluralDays(item.data.totalDays)}</span>
       </div>
       <div className="text-xs text-muted line-clamp-1">{item.data.reason}</div>
@@ -355,79 +661,26 @@ function PendingDetail({ item }: { item: InboxItem }) {
   );
 }
 
-function HistoryItem({
-  h,
-  item,
-  onClick,
-}: {
-  h: HistoryRow;
-  item: InboxItem;
-  onClick: () => void;
-}) {
-  const meta = KIND_META[item.kind];
-  const t = useT();
-  const isApprove = h.action === 'APPROVE';
-  const decisionColor = isApprove ? 'rgb(var(--color-success))' : 'rgb(var(--color-danger))';
-  const decisionBg = isApprove ? 'rgb(var(--color-success) / 0.15)' : 'rgb(var(--color-danger) / 0.15)';
-  return (
-    <GlassCard hover className="p-4 md:p-5 cursor-pointer">
-      <div onClick={onClick} className="flex flex-col md:flex-row md:items-center gap-4">
-        <div className="flex items-center gap-4 flex-1 min-w-0">
-          <div className="relative flex-shrink-0">
-            <div
-              className="flex items-center justify-center rounded-xl"
-              style={{
-                width: 48,
-                height: 48,
-                background: meta.bg,
-                border: `1px solid ${meta.tone}33`,
-                color: meta.tone,
-              }}
-            >
-              {meta.icon}
-            </div>
-            <div
-              className="absolute -bottom-1 -right-1 flex items-center justify-center rounded-full"
-              style={{
-                width: 20,
-                height: 20,
-                background: decisionBg,
-                border: `2px solid rgb(var(--color-bg-base))`,
-              }}
-            >
-              {isApprove ? (
-                <CheckCircleFilled style={{ color: decisionColor, fontSize: 14 }} />
-              ) : (
-                <CloseCircleFilled style={{ color: decisionColor, fontSize: 14 }} />
-              )}
-            </div>
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span
-                className="text-[11px] font-bold uppercase tracking-wider"
-                style={{ color: meta.tone }}
-              >
-                {t(meta.labelKey)}
-              </span>
-              <span className="text-muted">·</span>
-              <span className="font-semibold truncate">{item.data.user.name}</span>
-            </div>
-            <div className="text-xs text-muted mt-1">
-              <span style={{ color: decisionColor, fontWeight: 600 }}>
-                {isApprove ? t('approvals.decisionApproved') : t('approvals.decisionRejected')}
-              </span>{' '}
-              {t('approvals.stagePrefix')} <b>{h.stage}</b> · {formatDateTime(h.createdAt)}
-            </div>
-            {h.comment && (
-              <div className="text-xs text-muted mt-1 italic line-clamp-1">“{h.comment}”</div>
-            )}
-          </div>
-        </div>
-        <div className="md:flex-shrink-0">
-          <StatusBadge status={item.data.status} />
-        </div>
-      </div>
-    </GlassCard>
-  );
+function buildDetailText(
+  item: InboxItem,
+  t: (k: string) => string,
+  minutesToReadable: (m: number) => string,
+  pluralDays: (n: number) => string,
+): string {
+  if (item.kind === 'overtime') {
+    const type =
+      item.data.overtimeType === 'PREMIUM_SHIFT'
+        ? t('overtime.typePremiumShift')
+        : t('overtime.typeOverdays');
+    return `${formatDate(item.data.date)} · ${type} · ${formatTime(item.data.startTime)} · ${minutesToReadable(
+      item.data.durationMinutes,
+    )} — ${item.data.reason}`;
+  }
+  if (item.kind === 'business-trip') {
+    return `${item.data.destination} · ${formatDate(item.data.startDate)} — ${formatDate(item.data.endDate)} · ${item.data.purpose}`;
+  }
+  if (item.kind === 'reimbursement') {
+    return `${formatRupiah(item.data.totalAmount)} (${item.data.items.length} ${t('approvals.itemsSuffix')})`;
+  }
+  return `${t(`leaveType.${item.data.leaveType}`)} · ${formatDate(item.data.startDate)} — ${formatDate(item.data.endDate)} · ${pluralDays(item.data.totalDays)} — ${item.data.reason}`;
 }

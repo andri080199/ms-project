@@ -239,7 +239,7 @@ async function main() {
             description: 'Grab ke kantor klien',
           },
           {
-            category: ReimbursementCategory.MEAL,
+            category: ReimbursementCategory.CLIENT_ENTERTAINMENT,
             amount: 300000,
             transactionDate: day(-3),
             description: 'Makan siang dengan klien',
@@ -258,7 +258,7 @@ async function main() {
       items: {
         create: [
           {
-            category: ReimbursementCategory.HOTEL,
+            category: ReimbursementCategory.HOTEL_DINAS,
             amount: 1250000,
             transactionDate: day(-8),
             description: 'Hotel meeting Surabaya (2 malam)',

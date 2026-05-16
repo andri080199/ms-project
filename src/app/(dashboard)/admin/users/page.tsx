@@ -1,10 +1,12 @@
 'use client';
 
-import { App, Avatar, Button, Empty, Form, Input, Modal, Popconfirm, Select, Skeleton, Spin, Switch, Tabs, Tag, Tooltip, Typography } from 'antd';
+import { App, AutoComplete, Avatar, Button, DatePicker, Empty, Form, Input, Modal, Popconfirm, Select, Skeleton, Spin, Switch, Tabs, Tag, Tooltip } from 'antd';
 import type { FormInstance } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, LockOutlined, MailOutlined, PhoneOutlined, IdcardOutlined, ApartmentOutlined, UserOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import dayjs, { type Dayjs } from 'dayjs';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import GlassCard from '@/components/GlassCard';
+import PageHeader, { PageTitle } from '@/components/PageHeader';
 import ProfileEditForm, {
   formValuesToApiBody,
   type ProfileEditable,
@@ -15,7 +17,6 @@ import { useSession } from 'next-auth/react';
 import { DEPARTMENT_OPTIONS } from '@/lib/departments';
 import { useT } from '@/lib/i18n/provider';
 
-const { Title, Text } = Typography;
 
 type Position = { id: string; name: string; baseRole: Role; department: string | null };
 
@@ -28,6 +29,8 @@ type UserRow = {
   isSuperAdmin: boolean;
   phone: string | null;
   department: string | null;
+  employmentStatus: string | null;
+  joinDate: string | null;
   spvId: string | null;
   positionId: string | null;
   position: Position | null;
@@ -43,6 +46,8 @@ type FormValues = {
   phone?: string;
   positionId?: string;
   department?: string;
+  employmentStatus?: string;
+  joinDate?: Dayjs | null;
   spvId?: string;
   employeeId?: string;
   isSuperAdmin?: boolean;
@@ -69,32 +74,39 @@ export default function UsersPage() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'akun' | 'profil'>('akun');
 
-  async function load() {
+  async function load(signal?: AbortSignal) {
     setLoading(true);
     try {
       const [u, p] = await Promise.all([
-        fetch('/api/admin/users', { cache: 'no-store' }).then((r) => r.json()),
-        fetch('/api/admin/positions', { cache: 'no-store' }).then((r) => r.json()),
+        fetch('/api/admin/users', { cache: 'no-store', signal }).then((r) => r.json()),
+        fetch('/api/admin/positions', { cache: 'no-store', signal }).then((r) => r.json()),
       ]);
       if (u.success) setRows(u.data);
       else message.error(u.error ?? t('adminUsers.msgLoadFailed'));
       if (p.success) setPositions(p.data);
+    } catch (err) {
+      if ((err as { name?: string })?.name === 'AbortError') return;
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    load();
+    const ctrl = new AbortController();
+    load(ctrl.signal);
+    return () => ctrl.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const spvOptions = useMemo(
     () =>
       rows
-        .filter((u) => u.role === 'SPV' || u.role === 'ADMIN')
-        .map((u) => ({ value: u.id, label: `${u.name} — ${t(`role.${u.role}`)}` })),
-    [rows, t],
+        .filter((u) => u.id !== editing?.id)
+        .map((u) => ({
+          value: u.id,
+          label: `${u.name} — ${u.position?.name ?? t(`role.${u.role}`)}`,
+        })),
+    [rows, t, editing?.id],
   );
 
   const filtered = useMemo(() => {
@@ -143,12 +155,14 @@ export default function UsersPage() {
         phone: editing.phone ?? undefined,
         positionId: editing.positionId ?? undefined,
         department: editing.department ?? undefined,
+        employmentStatus: editing.employmentStatus ?? undefined,
+        joinDate: editing.joinDate ? dayjs(editing.joinDate) : null,
         spvId: editing.spvId ?? undefined,
         employeeId: editing.employeeId ?? undefined,
         password: '',
         isSuperAdmin: editing.isSuperAdmin,
       }
-    : { role: 'EMPLOYEE', name: '', email: '', isSuperAdmin: false };
+    : { role: 'EMPLOYEE', name: '', email: '', isSuperAdmin: false, joinDate: null };
 
   async function onSave() {
     let accountValues: FormValues;
@@ -201,6 +215,8 @@ export default function UsersPage() {
         phone: accountValues.phone || null,
         positionId: accountValues.positionId || null,
         department: accountValues.department || null,
+        employmentStatus: accountValues.employmentStatus?.trim() || null,
+        joinDate: accountValues.joinDate ? accountValues.joinDate.toISOString() : null,
         spvId: accountValues.spvId || null,
         employeeId: accountValues.employeeId?.trim() || null,
         isSuperAdmin: !!accountValues.isSuperAdmin,
@@ -241,9 +257,10 @@ export default function UsersPage() {
     if (!pid) return;
     const p = positions.find((x) => x.id === pid);
     if (!p) return;
-    form.setFieldValue('role', p.baseRole);
-    if (p.department) form.setFieldValue('department', p.department);
-    if (p.name === SUPER_ADMIN_DEFAULT_POSITION) form.setFieldValue('isSuperAdmin', true);
+    const updates: Partial<FormValues> = { role: p.baseRole };
+    if (p.department) updates.department = p.department;
+    if (p.name === SUPER_ADMIN_DEFAULT_POSITION) updates.isSuperAdmin = true;
+    queueMicrotask(() => form.setFieldsValue(updates));
   }
 
   const positionOptions = positions.map((p) => ({
@@ -253,26 +270,23 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <Title level={2} style={{ margin: 0, color: 'rgb(var(--color-text-on-canvas))' }}>
-            {t('adminUsers.title')}
-          </Title>
-          <Text className="text-muted">{t('adminUsers.subtitle')}</Text>
+      <PageHeader>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <PageTitle title={t('adminUsers.title')} subtitle={t('adminUsers.subtitle')} />
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Input.Search
+              placeholder={t('adminUsers.search')}
+              allowClear
+              onChange={(e) => setFilter(e.target.value)}
+              className="w-full sm:w-[260px]"
+              maxLength={100}
+            />
+            <Button type="primary" icon={<PlusOutlined />} size="large" onClick={openCreate}>
+              {t('adminUsers.addButton')}
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Input.Search
-            placeholder={t('adminUsers.search')}
-            allowClear
-            onChange={(e) => setFilter(e.target.value)}
-            style={{ width: 260 }}
-            maxLength={100}
-          />
-          <Button type="primary" icon={<PlusOutlined />} size="large" onClick={openCreate}>
-            {t('adminUsers.addButton')}
-          </Button>
-        </div>
-      </div>
+      </PageHeader>
 
       {loading ? (
         <GlassCard className="p-6">
@@ -532,6 +546,7 @@ function AccountFormSection({
             options={positionOptions}
             onChange={onPositionChange}
             optionFilterProp="label"
+            classNames={{ popup: { root: 'app-select-popup' } }}
           />
         </Form.Item>
         <Form.Item
@@ -539,7 +554,11 @@ function AccountFormSection({
           name="department"
           rules={[{ required: true, message: t('adminUsers.deptRequired') }]}
         >
-          <Select placeholder={t('adminUsers.deptPlaceholder')} options={DEPARTMENT_OPTIONS} />
+          <Select
+            placeholder={t('adminUsers.deptPlaceholder')}
+            options={DEPARTMENT_OPTIONS}
+            classNames={{ popup: { root: 'app-select-popup' } }}
+          />
         </Form.Item>
       </div>
 
@@ -547,18 +566,30 @@ function AccountFormSection({
         <Input placeholder={t('adminUsers.phonePlaceholder')} maxLength={30} />
       </Form.Item>
 
+      <div className="grid md:grid-cols-2 gap-3">
+        <Form.Item label={t('adminUsers.labelEmploymentStatus')} name="employmentStatus">
+          <Input placeholder={t('adminUsers.employmentStatusPlaceholder')} maxLength={100} />
+        </Form.Item>
+        <Form.Item
+          label={t('adminUsers.labelJoinDate')}
+          name="joinDate"
+          tooltip={t('adminUsers.joinDateTooltip')}
+        >
+          <DatePicker
+            className="w-full"
+            format="DD MMM YYYY"
+            placeholder={t('adminUsers.joinDatePlaceholder')}
+            classNames={{ popup: { root: 'app-date-popup' } }}
+          />
+        </Form.Item>
+      </div>
+
       <Form.Item
         label={t('adminUsers.labelApproval')}
         name="spvId"
         tooltip={t('adminUsers.approvalTooltip')}
       >
-        <Select
-          allowClear
-          placeholder={t('adminUsers.approvalPlaceholder')}
-          options={spvOptions}
-          showSearch
-          optionFilterProp="label"
-        />
+        <ApproverSearch options={spvOptions} placeholder={t('adminUsers.approvalPlaceholder')} />
       </Form.Item>
 
       <Form.Item
@@ -575,5 +606,49 @@ function AccountFormSection({
         <Switch checkedChildren={t('adminUsers.switchOn')} unCheckedChildren={t('adminUsers.switchOff')} />
       </Form.Item>
     </Form>
+  );
+}
+
+type ApproverSearchProps = {
+  value?: string;
+  onChange?: (v: string | undefined) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+};
+
+function ApproverSearch({ value, onChange, options, placeholder }: ApproverSearchProps) {
+  const [text, setText] = useState('');
+
+  useEffect(() => {
+    const matched = options.find((o) => o.value === value);
+    setText(matched?.label ?? '');
+  }, [value, options]);
+
+  const filtered = useMemo(() => {
+    const q = text.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((o) => o.label.toLowerCase().includes(q));
+  }, [options, text]);
+
+  return (
+    <AutoComplete
+      value={text}
+      options={filtered}
+      placeholder={placeholder}
+      allowClear
+      classNames={{ popup: { root: 'app-select-popup' } }}
+      onChange={(v: string) => {
+        setText(v ?? '');
+        if (!v) onChange?.(undefined);
+      }}
+      onSelect={(_v, opt) => {
+        onChange?.(opt.value);
+        setText(opt.label);
+      }}
+      onBlur={() => {
+        const matched = options.find((o) => o.value === value);
+        setText(matched?.label ?? '');
+      }}
+    />
   );
 }

@@ -13,6 +13,7 @@ import dayjs from 'dayjs';
 import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import GlassCard from '@/components/GlassCard';
+import PageHeader, { PageTitle } from '@/components/PageHeader';
 import ProfileEditForm, {
   formValuesToApiBody,
   type ProfileFormValues,
@@ -73,23 +74,25 @@ export default function ProfilePage() {
   const { message } = App.useApp();
   const t = useT();
 
-  async function load() {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/profile', { cache: 'no-store' });
-      const json = await res.json();
-      if (json.success) {
-        setProfile(json.data);
-      } else {
-        message.error(json.error ?? t('profile.msgLoadFailed'));
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
   useEffect(() => {
-    load();
+    const ctrl = new AbortController();
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/profile', { cache: 'no-store', signal: ctrl.signal });
+        const json = await res.json();
+        if (json.success) {
+          setProfile(json.data);
+        } else {
+          message.error(json.error ?? t('profile.msgLoadFailed'));
+        }
+      } catch (err) {
+        if ((err as { name?: string })?.name === 'AbortError') return;
+      } finally {
+        setLoading(false);
+      }
+    })();
+    return () => ctrl.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -119,7 +122,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-2">
         <GlassCard className="p-6">
           <Skeleton avatar active paragraph={{ rows: 2 }} />
         </GlassCard>
@@ -139,65 +142,105 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <Title level={2} style={{ margin: 0, color: 'rgb(var(--color-text-on-canvas))' }}>
-            {t('profile.title')}
-          </Title>
-          <Text className="text-muted">
-            {mode === 'view'
-              ? canEdit
-                ? t('profile.subtitleView')
-                : t('profile.subtitleViewNoEdit')
-              : t('profile.subtitleEdit')}
-          </Text>
-        </div>
-        {mode === 'view' && canEdit && (
-          <Button type="primary" icon={<EditOutlined />} onClick={() => setMode('edit')}>
-            {t('profile.editButton')}
-          </Button>
-        )}
-      </div>
-
-      <GlassCard className="p-5 md:p-6">
-        <div className="flex items-center gap-4 md:gap-5 flex-wrap">
-          <Avatar
-            size={84}
-            icon={<UserOutlined />}
-            style={{
-              background: 'var(--gradient-brand)',
-              color: 'rgb(var(--color-text-primary))',
-              fontSize: 40,
-              flexShrink: 0,
-            }}
+    <div className="space-y-2">
+      <PageHeader>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <PageTitle
+            title={t('profile.title')}
+            subtitle={
+              mode === 'view'
+                ? canEdit
+                  ? t('profile.subtitleView')
+                  : t('profile.subtitleViewNoEdit')
+                : t('profile.subtitleEdit')
+            }
           />
-          <div className="flex-1 min-w-0 space-y-1">
-            <Title level={3} style={{ margin: 0, color: 'rgb(var(--color-text-primary))' }} ellipsis>
-              {profile.name}
-            </Title>
-            <div className="flex items-center gap-2 flex-wrap">
-              {profile.employeeId && (
-                <Tag color="cyan" style={{ margin: 0, fontFamily: 'ui-monospace, monospace' }}>
-                  {profile.employeeId}
-                </Tag>
-              )}
-              <Text className="text-muted text-sm">
-                {profile.position?.name ?? '—'} · {profile.department ?? '—'}
-              </Text>
-            </div>
-            <div className="flex items-center gap-4 flex-wrap pt-1">
+          {mode === 'view' && canEdit && (
+            <Button type="primary" icon={<EditOutlined />} onClick={() => setMode('edit')}>
+              {t('profile.editButton')}
+            </Button>
+          )}
+        </div>
+      </PageHeader>
+
+      <GlassCard className="p-4 md:p-6">
+      <div className="flex items-center gap-4 md:gap-5 flex-wrap">
+        <Avatar
+          size={{
+            xs: 56, // mobile only
+            sm: 84, // mulai sm balik normal
+          }}
+          icon={<UserOutlined />}
+          style={{
+            background: 'var(--gradient-brand)',
+            color: 'rgb(var(--color-text-primary))',
+            fontSize: 40,
+            flexShrink: 0,
+          }}
+        />
+
+        <div className="flex-1 min-w-0 space-y-1">
+          <Title
+            level={3}
+            style={{
+              margin: 0,
+              color: 'rgb(var(--color-text-primary))',
+            }}
+            className="max-md:!text-xl" // hanya mobile lebih kecil
+            ellipsis
+          >
+            {profile.name}
+          </Title>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {profile.employeeId && (
+              <Tag
+                color="cyan"
+                style={{
+                  margin: 0,
+                  fontFamily: 'ui-monospace, monospace',
+                }}
+              >
+                {profile.employeeId}
+              </Tag>
+            )}
+
+            <Text className="text-muted text-sm">
+              {profile.position?.name ?? '—'} · {profile.department ?? '—'}
+            </Text>
+          </div>
+
+          {/* DESKTOP TETAP SAMA */}
+          <div className="hidden md:flex items-center gap-4 flex-wrap pt-1">
+            <span className="inline-flex items-center gap-1.5 text-sm text-muted">
+              <MailOutlined /> {profile.email}
+            </span>
+
+            {profile.phone && (
               <span className="inline-flex items-center gap-1.5 text-sm text-muted">
-                <MailOutlined /> {profile.email}
+                <PhoneOutlined /> {profile.phone}
               </span>
-              {profile.phone && (
-                <span className="inline-flex items-center gap-1.5 text-sm text-muted">
-                  <PhoneOutlined /> {profile.phone}
-                </span>
-              )}
-            </div>
+            )}
           </div>
         </div>
+
+        {/* MOBILE ONLY */}
+        <div className="w-full md:hidden pt-1">
+          <span className="flex items-start gap-1.5 text-sm text-muted w-full">
+            <MailOutlined className="mt-0.5 shrink-0" />
+            <span className="break-all">
+              {profile.email}
+            </span>
+          </span>
+
+          {profile.phone && (
+            <span className="flex items-center gap-1.5 text-sm text-muted mt-2">
+              <PhoneOutlined />
+              {profile.phone}
+            </span>
+          )}
+        </div>
+      </div>
       </GlassCard>
 
       {mode === 'view' || !canEdit ? (

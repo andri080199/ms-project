@@ -70,7 +70,7 @@ function wrapHtml(opts: {
 
   const ctaHtml = opts.cta
     ? `<div style="margin-top: 20px; text-align: center;">
-        <a href="${opts.cta.href}" style="display: inline-block; padding: 10px 20px; background: linear-gradient(135deg, #1F6F5F, #2FA084); color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">${opts.cta.label}</a>
+        <a href="${opts.cta.href}" style="display: inline-block; padding: 10px 20px; background: linear-gradient(135deg, #372463, #5F5082); color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">${opts.cta.label}</a>
       </div>`
     : '';
 
@@ -151,7 +151,7 @@ export async function notifyNewSubmission(input: SubmissionInput) {
     }
 
     const html = wrapHtml({
-      badgeColor: '#2FA084',
+      badgeColor: '#5F5082',
       badgeLabel: 'Pengajuan Baru',
       title: `Pengajuan ${label} Baru`,
       greeting: `Halo ${greetingName},`,

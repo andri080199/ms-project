@@ -39,18 +39,17 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    const { date, startTime, endTime, reason, attachmentUrl } = parsed.data;
+    const { date, startTime, overtimeType, durationMinutes, reason, attachmentUrl } = parsed.data;
     const start = new Date(startTime);
-    const end = new Date(endTime);
-    const durationMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
 
     const created = await prisma.overtimeRequest.create({
       data: {
         userId: session.user.id,
         date: new Date(date),
         startTime: start,
-        endTime: end,
+        endTime: null,
         durationMinutes,
+        overtimeType,
         reason,
         attachmentUrl: attachmentUrl ?? null,
         status: 'SUBMITTED',
@@ -68,7 +67,8 @@ export async function POST(req: Request) {
         submitter,
         summary: [
           `Tanggal: ${formatDate(created.date)}`,
-          `Jam: ${formatTime(created.startTime)} — ${formatTime(created.endTime)}`,
+          `Tipe: ${created.overtimeType === 'PREMIUM_SHIFT' ? 'Premium Shift' : 'Overdays'}`,
+          `Jam Mulai: ${formatTime(created.startTime)}`,
           `Durasi: ${minutesToReadable(created.durationMinutes)}`,
           `Alasan: ${created.reason}`,
         ],
