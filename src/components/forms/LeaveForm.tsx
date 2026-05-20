@@ -1,132 +1,169 @@
-'use client';
+'use client'; // tandai sebagai Client Component agar bisa pakai useState, useEffect, dll.
 
+// ─── Import komponen UI dari Ant Design ──────────────────────────────────────
 import { App, Button, DatePicker, Form, Input, Select } from 'antd';
-import { type Dayjs } from 'dayjs';
-import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
-import UploadField from '@/components/UploadField';
-import type { LeaveType } from '@prisma/client';
-import { useT } from '@/lib/i18n/provider';
+// App        → context global untuk message/notification
+// Button     → tombol UI
+// DatePicker → date picker, termasuk RangePicker untuk memilih rentang tanggal
+// Form       → form dengan validasi bawaan AntD
+// Input      → input teks (dipakai untuk TextArea alasan)
+// Select     → dropdown pilihan jenis cuti
 
+import { type Dayjs } from 'dayjs'; // tipe objek tanggal dari dayjs
+import { useRouter } from 'next/navigation'; // navigasi programatik (redirect setelah submit)
+import { useMemo, useState } from 'react'; // hooks React dasar
+import UploadField from '@/components/UploadField'; // komponen upload lampiran (misal surat dokter)
+import type { LeaveType } from '@prisma/client'; // tipe enum Prisma untuk jenis cuti
+import { useT } from '@/lib/i18n/provider'; // hook fungsi terjemahan string sesuai bahasa aktif
+
+// Tipe nilai form pengajuan cuti
 type FormValues = {
-  dateRange: [Dayjs, Dayjs];
-  leaveType: LeaveType;
-  reason: string;
-  attachmentUrl?: string;
+  dateRange: [Dayjs, Dayjs]; // rentang tanggal cuti: [tanggal mulai, tanggal selesai]
+  leaveType: LeaveType; // jenis cuti (ANNUAL, SICK, PERSONAL, dll.)
+  reason: string; // alasan cuti (min 5 karakter)
+  attachmentUrl?: string; // URL lampiran opsional (misal: surat dokter untuk cuti sakit)
 };
 
+// Daftar semua kunci jenis cuti yang tersedia
 const TYPE_KEYS: LeaveType[] = ['ANNUAL', 'SICK', 'PERSONAL', 'MATERNITY', 'UNPAID', 'OTHER'];
 
+// Form pengajuan cuti baru.
+// Menampilkan hitungan "total hari" secara live saat user memilih rentang tanggal.
 export default function LeaveForm() {
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const { message } = App.useApp();
-  const t = useT();
-  const [form] = Form.useForm<FormValues>();
+  const [loading, setLoading] = useState(false); // State: true saat form sedang di-submit ke API
+  const router = useRouter(); // router Next.js untuk redirect setelah berhasil submit
+  const { message } = App.useApp(); // API notifikasi global AntD
+  const t = useT(); // fungsi terjemahan
+  const [form] = Form.useForm<FormValues>(); // instance form AntD untuk kontrol programatik
+
+  // ─── Hitung total hari cuti secara real-time ───────────────────────────────
+  // Watch field 'dateRange' agar total hari diperbarui setiap kali rentang berubah
   const dateRange = Form.useWatch('dateRange', form);
   const days =
     dateRange?.[0] && dateRange?.[1]
-      ? dateRange[1].startOf('day').diff(dateRange[0].startOf('day'), 'day') + 1
-      : null;
+      ? dateRange[1].startOf('day').diff(dateRange[0].startOf('day'), 'day') + 1 // inklusif: +1
+      : null; // null jika rentang belum dipilih lengkap
 
+  // Opsi dropdown jenis cuti — di-memoize dan diterjemahkan sesuai bahasa aktif
   const typeOptions = useMemo(
-    () => TYPE_KEYS.map((v) => ({ value: v, label: t(`leaveType.${v}`) })),
-    [t],
+    () => TYPE_KEYS.map((v) => ({ value: v, label: t(`leaveType.${v}`) })), // setiap key → { value, label }
+    [t], // re-compute hanya jika bahasa berubah
   );
 
+  // ─── Handler submit form ────────────────────────────────────────────────────
   async function onFinish(values: FormValues) {
-    const [start, end] = values.dateRange;
+    const [start, end] = values.dateRange; // destruktur tanggal mulai dan selesai
+
+    // Validasi: tanggal selesai harus sama atau setelah tanggal mulai
     if (end.isBefore(start, 'day')) {
-      message.error(t('leave.endAfterStart'));
-      return;
+      message.error(t('leave.endAfterStart')); // tampilkan error
+      return; // batalkan submit
     }
-    setLoading(true);
+
+    setLoading(true); // aktifkan loading state tombol submit
+
     try {
+      // Kirim data pengajuan ke API
       const res = await fetch('/api/leave', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          startDate: start.startOf('day').toISOString(),
-          endDate: end.startOf('day').toISOString(),
-          leaveType: values.leaveType,
-          reason: values.reason,
-          attachmentUrl: values.attachmentUrl || undefined,
+          // Gunakan startOf('day') agar komponen waktu tidak menggeser tanggal melewati tengah malam
+          startDate: start.startOf('day').toISOString(), // tanggal mulai sebagai ISO string (00:00:00)
+          endDate: end.startOf('day').toISOString(), // tanggal selesai sebagai ISO string (00:00:00)
+          leaveType: values.leaveType, // kode jenis cuti
+          reason: values.reason, // alasan cuti
+          attachmentUrl: values.attachmentUrl || undefined, // lampiran, atau undefined jika tidak ada
         }),
       });
-      const json = await res.json();
+      const json = await res.json(); // parse response
+
+      // Jika HTTP status error atau API mengembalikan success: false
       if (!res.ok || !json.success) {
-        message.error(json.error ?? t('common.saveFailed'));
-        return;
+        message.error(json.error ?? t('common.saveFailed')); // tampilkan pesan error dari API
+        return; // batalkan redirect
       }
-      message.success(t('leave.successSubmitted'));
-      router.push('/leave');
-      router.refresh();
+
+      message.success(t('leave.successSubmitted')); // tampilkan notifikasi sukses
+      router.push('/leave'); // redirect ke halaman daftar cuti
+      router.refresh(); // refresh data halaman tujuan
     } finally {
-      setLoading(false);
+      setLoading(false); // matikan loading state (baik sukses maupun gagal)
     }
   }
 
+  // ─── Render form ─────────────────────────────────────────────────────────
   return (
+    // Form AntD dengan layout vertikal (label di atas input)
     <Form<FormValues>
-      form={form}
-      layout="vertical"
-      onFinish={onFinish}
-      className="space-y-6"
-      initialValues={{ leaveType: 'ANNUAL' }}
+      form={form} // bind instance form
+      layout="vertical" // label di atas input
+      onFinish={onFinish} // handler dipanggil saat validasi lulus dan submit ditekan
+      className="space-y-6" // jarak vertikal antar Form.Item
+      initialValues={{ leaveType: 'ANNUAL' }} // default: cuti tahunan
     >
+      {/* Field: jenis cuti */}
       <Form.Item
-        label={t('leave.labelType')}
+        label={t('leave.labelType')} // label: "Jenis Cuti"
         name="leaveType"
-        rules={[{ required: true, message: t('leave.typeRequired') }]}
+        rules={[{ required: true, message: t('leave.typeRequired') }]} // wajib dipilih
       >
         <Select
-          options={typeOptions}
-          placeholder={t('leave.typePlaceholder')}
-          classNames={{ popup: { root: 'app-select-popup' } }}
+          options={typeOptions} // opsi jenis cuti yang sudah diterjemahkan
+          placeholder={t('leave.typePlaceholder')} // placeholder dropdown
+          classNames={{ popup: { root: 'app-select-popup' } }} // styling popup dropdown
         />
       </Form.Item>
 
+      {/* Field: rentang tanggal cuti — dengan tampilan total hari di bawahnya */}
       <Form.Item
-        label={t('leave.labelDateRange')}
+        label={t('leave.labelDateRange')} // label: "Rentang Tanggal"
         name="dateRange"
-        rules={[{ required: true, message: t('leave.dateRequired') }]}
+        rules={[{ required: true, message: t('leave.dateRequired') }]} // wajib diisi
+        // Tampilkan total hari di bawah date picker (diperbarui real-time)
         extra={days != null ? <span className="text-xs text-muted">{t('leave.totalDaysLabel', { n: days })}</span> : null}
       >
+        {/* RangePicker: memilih tanggal mulai dan selesai sekaligus */}
         <DatePicker.RangePicker
-          className="w-full"
-          format="DD MMM YYYY"
-          classNames={{ popup: { root: 'app-date-popup single-month-panel' } }}
+          className="w-full" // lebar penuh
+          format="DD MMM YYYY" // format tampilan: "20 Mei 2026"
+          classNames={{ popup: { root: 'app-date-popup single-month-panel' } }} // styling popup kalender
         />
       </Form.Item>
 
+      {/* Field: alasan cuti (min 5 karakter, max 1000 karakter) */}
       <Form.Item
-        label={t('leave.labelReason')}
+        label={t('leave.labelReason')} // label: "Alasan Cuti"
         name="reason"
         rules={[
-          { required: true, message: t('leave.reasonRequired') },
-          { min: 5, message: t('leave.reasonMin') },
-          { max: 1000, message: t('leave.reasonMax') },
+          { required: true, message: t('leave.reasonRequired') }, // wajib diisi
+          { min: 5, message: t('leave.reasonMin') }, // minimal 5 karakter
+          { max: 1000, message: t('leave.reasonMax') }, // maksimal 1000 karakter
         ]}
       >
+        {/* TextArea dengan counter karakter */}
         <Input.TextArea rows={4} placeholder={t('leave.reasonPlaceholder')} showCount maxLength={1000} />
       </Form.Item>
 
+      {/* Field: lampiran opsional (misal: surat dokter untuk cuti sakit) */}
       <Form.Item
-        label={t('leave.labelAttachment')}
-        name="attachmentUrl"
-        tooltip={t('leave.attachmentTooltip')}
+        label={t('leave.labelAttachment')} // label: "Lampiran"
+        name="attachmentUrl" // nilai berupa URL file yang sudah di-upload
+        tooltip={t('leave.attachmentTooltip')} // tooltip info format file
       >
+        {/* Komponen upload file kustom — mengunggah file dan menyimpan URL-nya */}
         <UploadField buttonLabel={t('leave.uploadButton')} />
       </Form.Item>
 
+      {/* Tombol submit form */}
       <div className="flex justify-end pt-2">
         <Button
-          type="primary"
-          htmlType="submit"
-          loading={loading}
-          style={{ boxShadow: '0 8px 18px -4px rgb(var(--color-primary-900) / 0.95), 0 2px 6px -2px rgb(var(--color-primary-700) / 0.6)' }}
+          type="primary" // gaya primer (warna utama aplikasi)
+          htmlType="submit" // tipe HTML submit agar trigger validasi AntD
+          loading={loading} // tampilkan spinner saat proses submit
+          style={{ boxShadow: '0 8px 18px -4px rgb(var(--color-primary-900) / 0.95), 0 2px 6px -2px rgb(var(--color-primary-700) / 0.6)' }} // bayangan kustom agar tombol menonjol
         >
-          {t('leave.submit')}
+          {t('leave.submit')} {/* label: "Ajukan Cuti" */}
         </Button>
       </div>
     </Form>

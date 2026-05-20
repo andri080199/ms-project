@@ -6,6 +6,8 @@ import { positionCreateSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
+// Returns all positions ordered alphabetically with a user count on each.
+// Requires super-admin privileges (canManageUsers).
 export async function GET() {
   try {
     const session = await auth();
@@ -16,7 +18,8 @@ export async function GET() {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
     const data = await prisma.position.findMany({
-      orderBy: [{ baseRole: 'asc' }, { name: 'asc' }],
+      orderBy: { name: 'asc' },
+      // _count.users lets the admin UI warn before deleting a position that still has members.
       include: { _count: { select: { users: true } } },
     });
     return NextResponse.json({ success: true, data });
@@ -26,6 +29,7 @@ export async function GET() {
   }
 }
 
+// Creates a new position. Returns 409 if the name already exists (name has a unique constraint).
 export async function POST(req: Request) {
   try {
     const session = await auth();

@@ -7,6 +7,8 @@ import { formatRupiah } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
+// Returns all reimbursement requests submitted by the authenticated user, newest first.
+// Includes line items, the submitter's basic info, and the assigned approver.
 export async function GET() {
   try {
     const session = await auth();
@@ -18,7 +20,8 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
       include: {
         items: true,
-        user: { select: { id: true, name: true, email: true, role: true, department: true } },
+        user: { select: { id: true, name: true, email: true, department: true } },
+        approver: { select: { id: true, name: true, email: true, department: true } },
       },
     });
     return NextResponse.json({ success: true, data });
@@ -28,6 +31,9 @@ export async function GET() {
   }
 }
 
+// Creates a new reimbursement request with one or more line items.
+// Reimbursement uses a single-step approval flow: an approver is assigned at creation time.
+// Priority order for approver selection: People & GA Officer → any other approval admin.
 export async function POST(req: Request) {
   try {
     const session = await auth();
@@ -42,11 +48,39 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    // Prefer a "People & GA Officer" approval admin; fall back to any other approval admin.
+    const peopleGa = await prisma.user.findFirst({
+      where: {
+        isApprovalAdmin: true,
+        id: { not: session.user.id },
+        position: { name: 'People & GA Officer' },
+      },
+      select: { id: true },
+    });
+    const approver =
+      peopleGa ??
+      (await prisma.user.findFirst({
+        where: {
+          isApprovalAdmin: true,
+          id: { not: session.user.id },
+        },
+        orderBy: { name: 'asc' },
+        select: { id: true },
+      }));
+    if (!approver) {
+      return NextResponse.json(
+        { success: false, error: 'Belum ada approval admin yang tersedia. Hubungi super admin.' },
+        { status: 400 },
+      );
+    }
+
     const totalAmount = parsed.data.items.reduce((a, b) => a + b.amount, 0);
 
     const created = await prisma.reimbursementRequest.create({
       data: {
         userId: session.user.id,
+        approverId: approver.id,
         totalAmount,
         status: 'SUBMITTED',
         items: {
@@ -62,6 +96,8 @@ export async function POST(req: Request) {
       include: { items: true },
     });
 
+    // Re-fetch submitter to get spvId; reimbursement notifications route to the assigned approver
+    // (not the SPV) since it bypasses the two-step SPV flow.
     const submitter = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { id: true, name: true, email: true, spvId: true, department: true },
@@ -71,6 +107,7 @@ export async function POST(req: Request) {
         kind: 'reimbursement',
         requestId: created.id,
         submitter,
+        approverId: approver.id,
         summary: [
           `Total: ${formatRupiah(created.totalAmount)}`,
           `Jumlah Item: ${created.items.length}`,

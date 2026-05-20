@@ -22,11 +22,11 @@ import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import type { ComponentProps, ComponentType } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Role } from '@prisma/client';
-import { canManageUsers, canSeeApprovalsInbox } from '@/lib/permissions';
+import { canManageUsers } from '@/lib/permissions';
 import { useI18n, useT } from '@/lib/i18n/provider';
 import { LOCALES, LOCALE_LABEL } from '@/lib/i18n/dict';
 
+// Custom plane SVG icon for the business-trip nav option.
 const PlaneSvg = () => (
   <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor">
     <path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
@@ -36,6 +36,8 @@ const PlaneIcon = (props: ComponentProps<typeof Icon>) => <Icon component={Plane
 
 type IconType = ComponentType<{ style?: React.CSSProperties }>;
 
+// Describes a single bottom-nav tab. `match` is a list of path prefixes that make this tab active.
+// Tabs without `href` (request, more) open a popover instead of navigating directly.
 type NavItem = {
   key: 'home' | 'employees' | 'request' | 'profile' | 'more';
   tKey: string;
@@ -44,6 +46,7 @@ type NavItem = {
   Icon: IconType;
 };
 
+// Fixed five bottom-nav tabs visible on mobile.
 const NAV_ITEMS: NavItem[] = [
   { key: 'home', tKey: 'nav.home', href: '/dashboard', match: ['/dashboard'], Icon: HomeOutlined },
   { key: 'employees', tKey: 'nav.employeesShort', href: '/employees', match: ['/employees'], Icon: UsergroupAddOutlined },
@@ -57,6 +60,7 @@ const NAV_ITEMS: NavItem[] = [
   { key: 'more', tKey: 'nav.more', match: ['/approvals', '/admin'], Icon: EllipsisOutlined },
 ];
 
+// Choices shown inside the "Request" popover.
 const REQUEST_OPTIONS: { href: string; tKey: string; Icon: IconType }[] = [
   { href: '/overtime', tKey: 'nav.overtime', Icon: ClockCircleOutlined },
   { href: '/leave', tKey: 'nav.leave', Icon: CalendarOutlined },
@@ -64,53 +68,93 @@ const REQUEST_OPTIONS: { href: string; tKey: string; Icon: IconType }[] = [
   { href: '/business-trip', tKey: 'nav.businessTrip', Icon: PlaneIcon },
 ];
 
+// Options inside the "More" popover; each has a `show` predicate so the list is role-aware.
 type ManageOption = {
   href: string;
   tKey: string;
   Icon: IconType;
-  show: (u: { role: Role; isSuperAdmin?: boolean | null }) => boolean;
+  show: (ctx: { isSuperAdmin: boolean; isApprovalAdmin: boolean; hasSubordinates: boolean }) => boolean;
 };
 
 const MANAGE_OPTIONS: ManageOption[] = [
-  { href: '/approvals', tKey: 'nav.approvals', Icon: InboxOutlined, show: canSeeApprovalsInbox },
-  { href: '/admin/users', tKey: 'nav.manageUsers', Icon: TeamOutlined, show: canManageUsers },
-  { href: '/admin/positions', tKey: 'nav.managePositions', Icon: IdcardOutlined, show: canManageUsers },
+  {
+    href: '/approvals',
+    tKey: 'nav.approvals',
+    Icon: InboxOutlined,
+    show: ({ isSuperAdmin, isApprovalAdmin, hasSubordinates }) =>
+      isSuperAdmin || isApprovalAdmin || hasSubordinates,
+  },
+  { href: '/admin/users', tKey: 'nav.manageUsers', Icon: TeamOutlined, show: ({ isSuperAdmin }) => canManageUsers({ isSuperAdmin }) },
+  { href: '/admin/positions', tKey: 'nav.managePositions', Icon: IdcardOutlined, show: ({ isSuperAdmin }) => canManageUsers({ isSuperAdmin }) },
 ];
 
+// Size of the icon container used in each nav tab.
 const ICON_SIZE = 36;
 
+// Returns true if pathname matches any of the given prefix patterns.
 function matchesPath(pathname: string, patterns: string[]) {
   return patterns.some((m) => pathname === m || pathname.startsWith(`${m}/`));
 }
 
+// Mobile fixed bottom navigation bar (hidden on md+ breakpoints).
+// The active tab floats upward with a wave cutout SVG and intermediate tabs bob as the wave passes.
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const t = useT();
   const { locale, setLocale } = useI18n();
-  const { data: session } = useSession();
-  const role = session?.user?.role as Role | undefined;
+  const { data: session, status } = useSession();
   const isSuperAdmin = !!session?.user?.isSuperAdmin;
+  const isApprovalAdmin = !!session?.user?.isApprovalAdmin;
   const [requestOpen, setRequestOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [subordinateCount, setSubordinateCount] = useState(0);
 
+  // Fetch subordinate count to conditionally show the Approvals option in the "More" popover.
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    const ctrl = new AbortController();
+    (async () => {
+      try {
+        const res = await fetch('/api/profile', { cache: 'no-store', signal: ctrl.signal });
+        const json = await res.json();
+        if (json?.success) {
+          setSubordinateCount(json.data?._count?.subordinates ?? 0);
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => ctrl.abort();
+  }, [status]);
+
+  // Filter MANAGE_OPTIONS by the current user's role and subordinate count.
   const manageOptions = useMemo(
-    () => (role ? MANAGE_OPTIONS.filter((opt) => opt.show({ role, isSuperAdmin })) : []),
-    [role, isSuperAdmin],
+    () =>
+      MANAGE_OPTIONS.filter((opt) =>
+        opt.show({ isSuperAdmin, isApprovalAdmin, hasSubordinates: subordinateCount > 0 }),
+      ),
+    [isSuperAdmin, isApprovalAdmin, subordinateCount],
   );
 
+  // Index of the currently active tab, used to position the floating wave indicator.
   const activeIdx = useMemo(
     () => NAV_ITEMS.findIndex((n) => matchesPath(pathname, n.match)),
     [pathname],
   );
 
+  // Track the previous active index so intermediate tabs know to play the bob animation.
   const prevIdxRef = useRef(activeIdx);
   const oldIdx = prevIdxRef.current;
   useEffect(() => {
     prevIdxRef.current = activeIdx;
   }, [activeIdx]);
 
+  // Width percent of each tab (equal split across all items).
   const widthPct = 100 / NAV_ITEMS.length;
   const ActiveIcon = activeIdx >= 0 ? NAV_ITEMS[activeIdx].Icon : null;
+
+  // WAVE_MS: how long the wave slides between tabs.
+  // BOB_MS: how long each intermediate icon bobs up and back down.
   const WAVE_MS = 750;
   const BOB_MS = 350;
 
@@ -126,7 +170,8 @@ export default function MobileBottomNav() {
       }}
     >
       <div className="relative flex items-stretch">
-        {/* Floating active wave — compact SVG curve that stays within the bar's flat top */}
+        {/* Floating wave indicator — a compact SVG curve that rises above the active tab.
+            It slides horizontally via CSS transform when the active tab changes. */}
         {ActiveIcon && (
           <div
             aria-hidden
@@ -158,10 +203,12 @@ export default function MobileBottomNav() {
                   shapeRendering: 'geometricPrecision',
                 }}
               >
+                {/* Filled wave body that blends with the nav bar background */}
                 <path
                   d="M 0 9.5 C 11 9.5, 11 0, 22 0 C 33 0, 33 9.5, 44 9.5 L 44 16 L 0 16 Z"
                   fill="rgb(var(--glass-tint))"
                 />
+                {/* Stroked top edge that matches the nav bar border color */}
                 <path
                   d="M 0 9.5 C 11 9.5, 11 0, 22 0 C 33 0, 33 9.5, 44 9.5"
                   fill="none"
@@ -177,6 +224,8 @@ export default function MobileBottomNav() {
         {NAV_ITEMS.map((item, i) => {
           const active = i === activeIdx;
           const label = t(item.tKey);
+
+          // Determine if this tab lies between the old and new active positions so it can bob.
           const minIdx = Math.min(oldIdx, activeIdx);
           const maxIdx = Math.max(oldIdx, activeIdx);
           const isIntermediate =
@@ -185,6 +234,8 @@ export default function MobileBottomNav() {
             activeIdx >= 0 &&
             i > minIdx &&
             i < maxIdx;
+
+          // Stagger the bob delay so each intermediate icon peaks as the wave passes over it.
           let bobDelayMs: number | undefined;
           if (isIntermediate) {
             const distance = Math.abs(activeIdx - oldIdx);
@@ -200,6 +251,7 @@ export default function MobileBottomNav() {
             />
           );
 
+          // "Request" tab opens a popover with all request type choices.
           if (item.key === 'request') {
             return (
               <Popover
@@ -259,6 +311,7 @@ export default function MobileBottomNav() {
             );
           }
 
+          // "More" tab opens a popover with admin/approval links, language switcher, and sign-out.
           if (item.key === 'more') {
             return (
               <Popover
@@ -375,6 +428,7 @@ export default function MobileBottomNav() {
             );
           }
 
+          // Regular direct-link tabs.
           return (
             <Link
               key={item.key}
@@ -391,6 +445,9 @@ export default function MobileBottomNav() {
   );
 }
 
+// Inner content of each nav tab: the icon floats up and scales when active.
+// `bobKey` triggers the CSS bob animation on intermediate tabs as the wave passes.
+// `bobDelayMs` staggers the animation so each icon peaks right as the wave reaches it.
 function NavInner({
   Icon: IconCmp,
   active,

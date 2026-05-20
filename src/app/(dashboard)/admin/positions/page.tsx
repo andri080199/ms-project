@@ -1,11 +1,14 @@
 'use client';
 
+// Admin positions management page. Lists all positions with their user counts.
+// Delete is blocked server-side (and disabled in the UI) when users are still assigned to a position.
+// The name field uses AutoComplete with POSITION_OPTIONS as suggestions but allows free text.
+
 import { App, AutoComplete, Button, Empty, Form, Modal, Popconfirm, Select, Skeleton, Tag, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, IdcardOutlined, TeamOutlined } from '@ant-design/icons';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import GlassCard from '@/components/GlassCard';
 import PageHeader, { PageTitle } from '@/components/PageHeader';
-import type { Role } from '@prisma/client';
 import { DEPARTMENT_OPTIONS } from '@/lib/departments';
 import { POSITION_OPTIONS } from '@/lib/positions';
 import { useT } from '@/lib/i18n/provider';
@@ -14,7 +17,6 @@ import { useT } from '@/lib/i18n/provider';
 type Position = {
   id: string;
   name: string;
-  baseRole: Role;
   department: string | null;
   createdAt: string;
   _count: { users: number };
@@ -23,7 +25,6 @@ type Position = {
 type FormValues = {
   name: string;
   department: string;
-  baseRole: Role;
 };
 
 export default function PositionsPage() {
@@ -35,16 +36,6 @@ export default function PositionsPage() {
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm<FormValues>();
   const { message } = App.useApp();
-
-  const roleOptions = useMemo(
-    () => [
-      { value: 'EMPLOYEE' as Role, label: t('adminPositions.roleEmployeeOption') },
-      { value: 'SPV' as Role, label: t('adminPositions.roleSpvOption') },
-      { value: 'HR' as Role, label: t('adminPositions.roleHrOption') },
-      { value: 'ADMIN' as Role, label: t('adminPositions.roleAdminOption') },
-    ],
-    [t],
-  );
 
   async function load(signal?: AbortSignal) {
     setLoading(true);
@@ -82,7 +73,6 @@ export default function PositionsPage() {
       const body = {
         name: values.name.trim(),
         department: values.department,
-        baseRole: values.baseRole,
       };
       const url = editing ? `/api/admin/positions/${editing.id}` : '/api/admin/positions';
       const method = editing ? 'PATCH' : 'POST';
@@ -212,9 +202,8 @@ export default function PositionsPage() {
               ? {
                   name: editing.name,
                   department: editing.department ?? undefined,
-                  baseRole: editing.baseRole,
                 }
-              : { baseRole: 'EMPLOYEE' as Role }
+              : undefined
           }
           preserve={false}
         >
@@ -245,18 +234,6 @@ export default function PositionsPage() {
             <Select
               placeholder={t('adminPositions.deptPlaceholder')}
               options={DEPARTMENT_OPTIONS}
-              classNames={{ popup: { root: 'app-select-popup' } }}
-            />
-          </Form.Item>
-          <Form.Item
-            label={t('adminPositions.labelRole')}
-            name="baseRole"
-            rules={[{ required: true, message: t('adminPositions.roleRequired') }]}
-            tooltip={t('adminPositions.roleTooltip')}
-          >
-            <Select
-              placeholder={t('adminPositions.rolePlaceholder')}
-              options={roleOptions}
               classNames={{ popup: { root: 'app-select-popup' } }}
             />
           </Form.Item>

@@ -1,7 +1,7 @@
 'use client';
 
 import Icon, {
-  DashboardOutlined,
+  HomeOutlined,
   ClockCircleOutlined,
   WalletOutlined,
   InboxOutlined,
@@ -23,13 +23,14 @@ import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import type { ComponentProps } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { canManageUsers, canSeeApprovalsInbox } from '@/lib/permissions';
-import type { Role } from '@prisma/client';
+import { canManageUsers } from '@/lib/permissions';
 import { useI18n, useT } from '@/lib/i18n/provider';
 import { LOCALES, LOCALE_LABEL } from '@/lib/i18n/dict';
 
+// localStorage key for persisting the collapsed/expanded state across page loads.
 const COLLAPSED_KEY = 'fiersa.sidebarCollapsed';
 
+// Custom plane SVG icon wrapped as an AntD-compatible Icon component.
 const PlaneSvg = () => (
   <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor">
     <path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
@@ -37,20 +38,29 @@ const PlaneSvg = () => (
 );
 const PlaneIcon = (props: ComponentProps<typeof Icon>) => <Icon component={PlaneSvg} {...props} />;
 
+// Key used to group all request sub-menu items under a single collapsible parent.
 const REQUEST_KEY = 'request';
+
+// Sub-menu items under the "Request" group.
 const REQUEST_CHILDREN: { key: string; tKey: string; icon: React.ReactNode }[] = [
   { key: '/overtime', tKey: 'nav.overtime', icon: <ClockCircleOutlined /> },
   { key: '/leave', tKey: 'nav.leave', icon: <CalendarOutlined /> },
   { key: '/reimbursement', tKey: 'nav.reimbursement', icon: <WalletOutlined /> },
   { key: '/business-trip', tKey: 'nav.businessTrip', icon: <PlaneIcon /> },
 ];
+
+// Top-level nav items shown above the request group.
 const TOP_NAV: { key: string; tKey: string; icon: React.ReactNode }[] = [
-  { key: '/dashboard', tKey: 'nav.home', icon: <DashboardOutlined /> },
+  { key: '/dashboard', tKey: 'nav.home', icon: <HomeOutlined /> },
 ];
+
+// Bottom nav items shown below the request group, before admin links.
 const BOTTOM_NAV: { key: string; tKey: string; icon: React.ReactNode }[] = [
   { key: '/employees', tKey: 'nav.employees', icon: <UsergroupAddOutlined /> },
   { key: '/profile', tKey: 'nav.profile', icon: <UserOutlined /> },
 ];
+
+// All leaf-level paths used for "selectedKeys" matching in AntD Menu.
 const ALL_LEAF_PATHS = [
   ...TOP_NAV.map((n) => n.key),
   ...REQUEST_CHILDREN.map((n) => n.key),
@@ -60,17 +70,20 @@ const ALL_LEAF_PATHS = [
   '/admin/positions',
 ];
 
+// Desktop sidebar — hidden on mobile (md:flex). Animates width between 80px (collapsed) and 256px.
 export default function Sidebar() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  const role = session?.user?.role as Role | undefined;
   const isSuperAdmin = !!session?.user?.isSuperAdmin;
+  const isApprovalAdmin = !!session?.user?.isApprovalAdmin;
   const t = useT();
   const { locale, setLocale } = useI18n();
   const user = session?.user;
   const [collapsed, setCollapsed] = useState(false);
   const [positionName, setPositionName] = useState<string | null>(null);
+  const [subordinateCount, setSubordinateCount] = useState(0);
 
+  // Restore collapsed state from localStorage on mount (SSR-safe).
   useEffect(() => {
     try {
       const saved = typeof window !== 'undefined' ? window.localStorage.getItem(COLLAPSED_KEY) : null;
@@ -80,6 +93,8 @@ export default function Sidebar() {
     }
   }, []);
 
+  // Fetch profile to get position name and subordinate count for the sidebar subtitle and
+  // conditional "Approvals" menu item. Uses AbortController to cancel on unmount/re-auth.
   useEffect(() => {
     if (status !== 'authenticated') return;
     const ctrl = new AbortController();
@@ -89,6 +104,7 @@ export default function Sidebar() {
         const json = await res.json();
         if (json?.success) {
           setPositionName(json.data?.position?.name ?? null);
+          setSubordinateCount(json.data?._count?.subordinates ?? 0);
         }
       } catch {
         /* ignore */
@@ -97,6 +113,7 @@ export default function Sidebar() {
     return () => ctrl.abort();
   }, [status]);
 
+  // Toggle collapsed state and persist the choice to localStorage.
   const toggleCollapsed = () => {
     setCollapsed((c) => {
       const next = !c;
@@ -109,6 +126,9 @@ export default function Sidebar() {
     });
   };
 
+  // Build the AntD Menu items array. Conditionally appends Approvals and admin links
+  // based on the user's role: super admins / approval admins / SPVs see Approvals;
+  // only super admins see the user/position management pages.
   const items = useMemo(() => {
     type MenuItem = {
       key: string;
@@ -138,14 +158,14 @@ export default function Sidebar() {
         label: <Link href={n.key}>{t(n.tKey)}</Link>,
       })),
     ];
-    if (role && canSeeApprovalsInbox({ role, isSuperAdmin })) {
+    if (isSuperAdmin || isApprovalAdmin || subordinateCount > 0) {
       base.push({
         key: '/approvals',
         icon: <InboxOutlined />,
         label: <Link href="/approvals">{t('nav.approvals')}</Link>,
       });
     }
-    if (role && canManageUsers({ role, isSuperAdmin })) {
+    if (canManageUsers({ isSuperAdmin })) {
       base.push({
         key: '/admin/users',
         icon: <TeamOutlined />,
@@ -158,10 +178,12 @@ export default function Sidebar() {
       });
     }
     return base;
-  }, [role, isSuperAdmin, t]);
+  }, [isSuperAdmin, isApprovalAdmin, subordinateCount, t]);
 
+  // Match the current pathname against all known leaf paths for selectedKeys highlighting.
   const selected = ALL_LEAF_PATHS.filter((k) => pathname === k || pathname.startsWith(`${k}/`));
 
+  // Keep the Request sub-menu open when navigating to any of its child routes.
   const isOnRequestRoute = useMemo(
     () => REQUEST_CHILDREN.some(({ key }) => pathname === key || pathname.startsWith(`${key}/`)),
     [pathname],
@@ -173,8 +195,9 @@ export default function Sidebar() {
     }
   }, [isOnRequestRoute]);
 
-  const subtitle = positionName ?? (user?.role ? t(`role.${user.role}`) : '');
+  const subtitle = positionName ?? '';
 
+  // Language switcher dropdown items, with a checkmark on the active locale.
   const langMenu = {
     items: LOCALES.map((l) => ({
       key: l,
@@ -197,6 +220,7 @@ export default function Sidebar() {
       }`}
     >
       <div className="h-full flex flex-col">
+        {/* Brand header — shows full name + tagline when expanded, single letter "F" when collapsed */}
         <div
           className={`border-b border-white/10 flex items-center gap-2 ${
             isCollapsed ? 'px-2 py-4 flex-col' : 'px-5 py-6 justify-between'
@@ -204,21 +228,15 @@ export default function Sidebar() {
         >
           {!isCollapsed ? (
             <div className="min-w-0">
-              <div
-                className="font-extrabold leading-none bg-gradient-to-br from-primary-300 to-primary-500 bg-clip-text text-transparent"
-                style={{ fontSize: 32, letterSpacing: '0.18em' }}
-              >
+              <h1 className="login-brand" style={{ fontSize: 32 }}>
                 {t('brand.name')}
-              </div>
+              </h1>
               <div className="text-xs text-muted leading-tight mt-2">{t('brand.tagline')}</div>
             </div>
           ) : (
-            <div
-              className="font-extrabold bg-gradient-to-br from-primary-300 to-primary-500 bg-clip-text text-transparent text-center"
-              style={{ fontSize: 24 }}
-            >
+            <h1 className="login-brand text-center" style={{ fontSize: 24 }}>
               F
-            </div>
+            </h1>
           )}
           <Button
             type="text"
@@ -230,6 +248,7 @@ export default function Sidebar() {
           />
         </div>
 
+        {/* Main navigation menu — openKeys is suppressed when collapsed so AntD hides sub-menus */}
         <Menu
           mode="inline"
           inlineCollapsed={isCollapsed}
@@ -240,6 +259,7 @@ export default function Sidebar() {
           style={{ background: 'transparent', border: 'none', flex: 1, minHeight: 0, overflowY: 'auto' }}
         />
 
+        {/* Bottom section: language switcher, user info, and sign-out button */}
         <div className="border-t border-white/10 p-2 space-y-1">
           <Dropdown menu={langMenu} trigger={['click']} placement={isCollapsed ? 'topRight' : 'top'}>
             <button

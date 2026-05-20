@@ -1,17 +1,28 @@
 'use client';
 
+// Dashboard home page. Fetches summary stats and the last 10 activity items on mount.
+// AbortController cancels the in-flight fetch if the component unmounts (e.g. fast navigation).
+
 import { Button, Skeleton, Typography } from 'antd';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import GlassCard from '@/components/GlassCard';
 import PageHeader, { PageTitle } from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
-import {
+import Icon, {
   ClockCircleOutlined,
   WalletOutlined,
-  CarOutlined,
+  CalendarOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
+import type { ComponentProps } from 'react';
+
+const PlaneSvg = () => (
+  <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor">
+    <path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
+  </svg>
+);
+const PlaneIcon = (props: ComponentProps<typeof Icon>) => <Icon component={PlaneSvg} {...props} />;
 import { formatDateTime, formatRupiah } from '@/lib/utils';
 import type { RequestStatus } from '@prisma/client';
 import { useT } from '@/lib/i18n/provider';
@@ -80,10 +91,11 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="hidden md:grid md:grid-cols-3 gap-4">
+      <div className="hidden md:grid md:grid-cols-4 gap-4">
         <QuickAction href="/overtime/new" icon={<ClockCircleOutlined />} label={t('dashboard.quickOvertime')} subtitle={t('dashboard.quickSubtitle')} />
+        <QuickAction href="/leave/new" icon={<CalendarOutlined />} label={t('dashboard.quickLeave')} subtitle={t('dashboard.quickSubtitle')} />
         <QuickAction href="/reimbursement/new" icon={<WalletOutlined />} label={t('dashboard.quickReimbursement')} subtitle={t('dashboard.quickSubtitle')} />
-        <QuickAction href="/business-trip/new" icon={<CarOutlined />} label={t('dashboard.quickTrip')} subtitle={t('dashboard.quickSubtitle')} />
+        <QuickAction href="/business-trip/new" icon={<PlaneIcon />} label={t('dashboard.quickTrip')} subtitle={t('dashboard.quickSubtitle')} />
       </div>
 
       <GlassCard className="p-5">
@@ -105,7 +117,7 @@ export default function DashboardPage() {
                   <div className="mt-0.5">
                     {a.kind === 'overtime' && <ClockCircleOutlined />}
                     {a.kind === 'reimbursement' && <WalletOutlined />}
-                    {a.kind === 'business-trip' && <CarOutlined />}
+                    {a.kind === 'business-trip' && <PlaneIcon />}
                   </div>
                   <div>
                     <div className="font-semibold">{a.title}</div>
@@ -125,6 +137,8 @@ export default function DashboardPage() {
   );
 }
 
+// Stat card with a colored dot indicator. `value` is undefined while loading
+// (renders a skeleton) and can be a number or a pre-formatted string (e.g. Rupiah).
 function SummaryCard({
   label,
   value,
@@ -188,7 +202,7 @@ function SummaryCard({
         </div>
       </div>
       <div
-        className="text-base md:text-2xl font-bold mt-1.5 md:mt-2 leading-tight break-all md:break-normal"
+        className={`${typeof value === 'string' ? 'text-xs' : 'text-base'} md:text-2xl font-bold mt-1.5 md:mt-2 leading-tight break-all md:break-normal`}
         style={{ color: t.value }}
       >
         {value === undefined ? <Skeleton.Input active size="small" /> : value}
@@ -212,8 +226,15 @@ function QuickAction({
     <Link href={href} className="block">
       <GlassCard hover className="p-3 flex items-center gap-2.5">
         <span
-          className="inline-flex items-center justify-center shrink-0"
-          style={{ width: 24, height: 24, color: '#fff', fontSize: 16 }}
+          className="inline-flex items-center justify-center shrink-0 rounded-lg"
+          style={{
+            width: 36,
+            height: 36,
+            background: 'rgb(var(--color-primary) / 0.15)',
+            border: '1px solid rgb(var(--color-primary) / 0.3)',
+            color: 'rgb(var(--color-primary))',
+            fontSize: 18,
+          }}
         >
           {icon}
         </span>
@@ -221,7 +242,12 @@ function QuickAction({
           <div className="font-semibold text-sm leading-tight truncate">{label}</div>
           <div className="text-[11px] text-muted truncate">{subtitle}</div>
         </div>
-        <Button type="text" size="small" icon={<PlusOutlined />} />
+        <Button
+          type="text"
+          size="small"
+          icon={<PlusOutlined />}
+          style={{ color: 'rgb(var(--color-primary))' }}
+        />
       </GlassCard>
     </Link>
   );

@@ -4,6 +4,8 @@ import { sendMail } from '@/lib/mailer';
 
 export const dynamic = 'force-dynamic';
 
+// Sends a test email to the currently authenticated user to verify SMTP configuration.
+// Returns the provider messageId on success so the caller can correlate with mail server logs.
 export async function GET() {
   try {
     const session = await auth();

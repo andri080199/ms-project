@@ -7,6 +7,7 @@ import { formatDate, formatTime, minutesToReadable } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
+// Returns all overtime requests submitted by the authenticated user, newest first.
 export async function GET() {
   try {
     const session = await auth();
@@ -16,7 +17,7 @@ export async function GET() {
     const data = await prisma.overtimeRequest.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: 'desc' },
-      include: { user: { select: { id: true, name: true, email: true, role: true, department: true } } },
+      include: { user: { select: { id: true, name: true, email: true, department: true } } },
     });
     return NextResponse.json({ success: true, data });
   } catch (e) {
@@ -25,6 +26,7 @@ export async function GET() {
   }
 }
 
+// Creates a new overtime request and fires an email notification to the submitter's SPV.
 export async function POST(req: Request) {
   try {
     const session = await auth();
@@ -47,6 +49,7 @@ export async function POST(req: Request) {
         userId: session.user.id,
         date: new Date(date),
         startTime: start,
+        // endTime is computed later by the approver or a cron job; stored as null initially.
         endTime: null,
         durationMinutes,
         overtimeType,
@@ -56,6 +59,7 @@ export async function POST(req: Request) {
       },
     });
 
+    // Re-fetch submitter to get spvId for notification routing.
     const submitter = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { id: true, name: true, email: true, spvId: true, department: true },

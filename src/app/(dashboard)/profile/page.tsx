@@ -1,5 +1,10 @@
 'use client';
 
+// Profile page. Fetches the authenticated user's full profile on mount.
+// Edit mode is only available to super admins — other users see a read-only view.
+// After saving, updateSession() refreshes the NextAuth JWT so the new name/email
+// is reflected in the sidebar without requiring a full page reload.
+
 import { App, Avatar, Button, Descriptions, Skeleton, Tag, Typography } from 'antd';
 import {
   EditOutlined,
@@ -18,7 +23,7 @@ import ProfileEditForm, {
   formValuesToApiBody,
   type ProfileFormValues,
 } from '@/components/ProfileEditForm';
-import type { BloodType, Gender, MaritalStatus, Role } from '@prisma/client';
+import type { BloodType, Gender, MaritalStatus } from '@prisma/client';
 import { useT } from '@/lib/i18n/provider';
 
 const { Title, Text } = Typography;
@@ -28,7 +33,6 @@ type Profile = {
   employeeId: string | null;
   email: string;
   name: string;
-  role: Role;
   phone: string | null;
   department: string | null;
   position: { id: string; name: string } | null;
@@ -45,13 +49,29 @@ type Profile = {
   residentialAddress: string | null;
   passportNumber: string | null;
   passportExpiry: string | null;
+  joinDate: string | null;
 };
 
+// Returns the person's age in full years, or null if birthdate is missing/invalid.
 function calcAge(birthdate: string | null): number | null {
   if (!birthdate) return null;
   const b = dayjs(birthdate);
   if (!b.isValid()) return null;
   return dayjs().diff(b, 'year');
+}
+
+function calcWorkingPeriod(joinDate: string | null): { y: number; m: number; d: number } | null {
+  if (!joinDate) return null;
+  const start = dayjs(joinDate);
+  if (!start.isValid()) return null;
+  const now = dayjs();
+  if (now.isBefore(start)) return null;
+  const y = now.diff(start, 'year');
+  const afterY = start.add(y, 'year');
+  const m = now.diff(afterY, 'month');
+  const afterM = afterY.add(m, 'month');
+  const d = now.diff(afterM, 'day');
+  return { y, m, d };
 }
 
 function formatDate(value: string | null): string {
@@ -119,6 +139,7 @@ export default function ProfilePage() {
   }
 
   const age = useMemo(() => (profile ? calcAge(profile.birthdate) : null), [profile]);
+  const workPeriod = useMemo(() => (profile ? calcWorkingPeriod(profile.joinDate) : null), [profile]);
 
   if (loading) {
     return (
@@ -167,14 +188,18 @@ export default function ProfilePage() {
       <div className="flex items-center gap-4 md:gap-5 flex-wrap">
         <Avatar
           size={{
-            xs: 56, // mobile only
-            sm: 84, // mulai sm balik normal
+            xs: 56,
+            sm: 120,
+            md: 120,
+            lg: 120,
+            xl: 120,
+            xxl: 120,
           }}
           icon={<UserOutlined />}
           style={{
             background: 'var(--gradient-brand)',
             color: 'rgb(var(--color-text-primary))',
-            fontSize: 40,
+            fontSize: 56,
             flexShrink: 0,
           }}
         />
@@ -289,6 +314,12 @@ export default function ProfilePage() {
               </Descriptions.Item>
               <Descriptions.Item label={t('profile.labelBlood')}>{valueOrDash(profile.bloodType)}</Descriptions.Item>
               <Descriptions.Item label={t('profile.labelReligion')}>{valueOrDash(profile.religion)}</Descriptions.Item>
+              <Descriptions.Item label={t('profile.labelJoinDate')}>{formatDate(profile.joinDate)}</Descriptions.Item>
+              <Descriptions.Item label={t('profile.labelWorkingPeriod')}>
+                {workPeriod
+                  ? t('profile.workingPeriodUnit', { y: workPeriod.y, m: workPeriod.m, d: workPeriod.d })
+                  : '—'}
+              </Descriptions.Item>
             </Descriptions>
           </GlassCard>
 

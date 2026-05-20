@@ -9,7 +9,11 @@ export function middleware(request: NextRequest) {
     request.cookies.get('__Secure-authjs.session-token');
 
   const isLoggedIn = !!sessionToken;
-  const isAuthRoute = pathname === '/login' || pathname.startsWith('/api/auth');
+  const isAuthRoute =
+    pathname === '/login' ||
+    pathname === '/forgot-password' ||
+    pathname === '/reset-password' ||
+    pathname.startsWith('/api/auth');
 
   if (isAuthRoute) return NextResponse.next();
 
@@ -24,6 +28,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api/auth|login|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/auth|login|forgot-password|reset-password|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)).*)',
   ],
 };

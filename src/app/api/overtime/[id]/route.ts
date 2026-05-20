@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
+// Returns a single overtime request with full approval history.
+// Viewable by: the request owner, the owner's SPV, or any super admin.
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
@@ -14,16 +16,15 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     const item = await prisma.overtimeRequest.findUnique({
       where: { id },
       include: {
-        user: { select: { id: true, name: true, email: true, role: true, department: true, spvId: true } },
-        approvals: { include: { approver: { select: { id: true, name: true, email: true, role: true, department: true } } }, orderBy: { createdAt: 'asc' } },
+        user: { select: { id: true, name: true, email: true, department: true, spvId: true, position: { select: { name: true } } } },
+        approvals: { include: { approver: { select: { id: true, name: true, email: true, department: true, position: { select: { name: true } } } } }, orderBy: { createdAt: 'asc' } },
       },
     });
     if (!item) return NextResponse.json({ success: false, error: 'Tidak ditemukan' }, { status: 404 });
 
     const isOwner = item.userId === session.user.id;
-    const role = session.user.role;
-    const isSpvOfOwner = role === 'SPV' && item.user.spvId === session.user.id;
-    const canView = isOwner || role === 'HR' || role === 'ADMIN' || isSpvOfOwner;
+    const isSpvOfOwner = item.user.spvId === session.user.id;
+    const canView = isOwner || !!session.user.isSuperAdmin || isSpvOfOwner;
     if (!canView) return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
 
     return NextResponse.json({ success: true, data: item });
@@ -33,6 +34,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   }
 }
 
+// Cancels an overtime request by marking it CANCELLED.
+// Only the owner or a super admin can cancel; only SUBMITTED/DRAFT requests can be cancelled
+// (requests already in an approval step must be rejected instead).
 export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
@@ -42,7 +46,7 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
     const { id } = await ctx.params;
     const item = await prisma.overtimeRequest.findUnique({ where: { id } });
     if (!item) return NextResponse.json({ success: false, error: 'Tidak ditemukan' }, { status: 404 });
-    if (item.userId !== session.user.id && session.user.role !== 'ADMIN') {
+    if (item.userId !== session.user.id && !session.user.isSuperAdmin) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
     if (item.status !== 'SUBMITTED' && item.status !== 'DRAFT') {

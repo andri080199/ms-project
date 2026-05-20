@@ -7,6 +7,7 @@ import { formatDate } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
+// Returns all business trip requests submitted by the authenticated user, newest first.
 export async function GET() {
   try {
     const session = await auth();
@@ -16,7 +17,7 @@ export async function GET() {
     const data = await prisma.businessTripRequest.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: 'desc' },
-      include: { user: { select: { id: true, name: true, email: true, role: true, department: true } } },
+      include: { user: { select: { id: true, name: true, email: true, department: true } } },
     });
     return NextResponse.json({ success: true, data });
   } catch (e) {
@@ -25,6 +26,8 @@ export async function GET() {
   }
 }
 
+// Creates a new business trip request and notifies the submitter's SPV.
+// tripType (WEEKEND vs WEEKDAY) is determined by the client based on the selected date range.
 export async function POST(req: Request) {
   try {
     const session = await auth();
@@ -53,6 +56,7 @@ export async function POST(req: Request) {
       },
     });
 
+    // Re-fetch submitter to get spvId for notification routing.
     const submitter = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { id: true, name: true, email: true, spvId: true, department: true },

@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
+// GET /api/employees — returns the public employee directory.
+// All authenticated users can access this; it excludes sensitive fields like
+// password, NIK, and address to keep it safe for the broad directory view.
 export async function GET() {
   try {
     const session = await auth();
@@ -17,7 +20,6 @@ export async function GET() {
         employeeId: true,
         name: true,
         email: true,
-        role: true,
         phone: true,
         department: true,
         employmentStatus: true,

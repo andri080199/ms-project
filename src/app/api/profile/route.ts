@@ -5,12 +5,14 @@ import { profileUpdateSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
+// Fields returned by both GET and PATCH for the current user's profile.
 const SELECT = {
   id: true,
   employeeId: true,
   email: true,
   name: true,
-  role: true,
+  isSuperAdmin: true,
+  isApprovalAdmin: true,
   phone: true,
   department: true,
   position: { select: { id: true, name: true } },
@@ -27,8 +29,12 @@ const SELECT = {
   residentialAddress: true,
   passportNumber: true,
   passportExpiry: true,
+  joinDate: true,
+  // Used by Sidebar/MobileBottomNav to know if this user has subordinates.
+  _count: { select: { subordinates: true } },
 } as const;
 
+// GET /api/profile — returns the authenticated user's full profile.
 export async function GET() {
   try {
     const session = await auth();
@@ -49,6 +55,9 @@ export async function GET() {
   }
 }
 
+// PATCH /api/profile — updates the authenticated user's own profile.
+// Restricted to super admins only (regular users cannot self-edit sensitive fields).
+// Validates for duplicate email and employee ID before saving.
 export async function PATCH(req: Request) {
   try {
     const session = await auth();
@@ -72,6 +81,7 @@ export async function PATCH(req: Request) {
     const d = parsed.data;
     const uid = session.user.id;
 
+    // Guard against email collision with another account.
     if (d.email) {
       const dup = await prisma.user.findFirst({
         where: { email: d.email, NOT: { id: uid } },
@@ -81,6 +91,8 @@ export async function PATCH(req: Request) {
         return NextResponse.json({ success: false, error: 'Email sudah dipakai' }, { status: 409 });
       }
     }
+
+    // Guard against employee ID collision with another account.
     const eid = d.employeeId?.trim() || null;
     if (eid) {
       const dup = await prisma.user.findFirst({
@@ -112,6 +124,7 @@ export async function PATCH(req: Request) {
         residentialAddress: d.residentialAddress ?? null,
         passportNumber: d.passportNumber ?? null,
         passportExpiry: d.passportExpiry ? new Date(d.passportExpiry) : null,
+        joinDate: d.joinDate ? new Date(d.joinDate) : null,
       },
       select: SELECT,
     });

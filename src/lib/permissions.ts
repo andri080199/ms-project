@@ -1,23 +1,14 @@
-import type { Role } from '@prisma/client';
+// Tipe minimal untuk cek akses — hanya butuh flag isSuperAdmin dari user
+export type AccessUser = { isSuperAdmin?: boolean | null };
 
-export type AccessUser = { role: Role; isSuperAdmin?: boolean | null };
-
-function isSuper(u: AccessUser): boolean {
-  return !!u.isSuperAdmin;
+// Kembalikan true jika user memiliki flag super admin.
+// Super admin memiliki akses penuh ke semua fitur admin di aplikasi.
+export function isSuper(u: AccessUser): boolean {
+  return !!u.isSuperAdmin; // konversi ke boolean pasti (null/undefined → false)
 }
 
-export function canApproveAsSpv(u: AccessUser): boolean {
-  return u.role === 'SPV' || u.role === 'ADMIN' || isSuper(u);
-}
-
-export function canApproveAsHr(u: AccessUser): boolean {
-  return u.role === 'HR' || u.role === 'ADMIN' || isSuper(u);
-}
-
+// Kembalikan true jika user diizinkan untuk membuat/memperbarui/menghapus akun karyawan lain.
+// Saat ini hanya super admin yang memiliki izin ini.
 export function canManageUsers(u: AccessUser): boolean {
-  return u.role === 'ADMIN' || isSuper(u);
-}
-
-export function canSeeApprovalsInbox(u: AccessUser): boolean {
-  return u.role === 'SPV' || u.role === 'HR' || u.role === 'ADMIN' || isSuper(u);
+  return isSuper(u); // delegasikan ke pengecekan super admin
 }

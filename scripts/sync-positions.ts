@@ -1,34 +1,34 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const POSITIONS: Array<{ name: string; baseRole: Role; department: string }> = [
+const POSITIONS: Array<{ name: string; department: string }> = [
   // Board
-  { name: 'CEO', baseRole: Role.ADMIN, department: 'Board' },
-  { name: 'CTO', baseRole: Role.ADMIN, department: 'Board' },
-  { name: 'COO', baseRole: Role.ADMIN, department: 'Board' },
+  { name: 'CEO', department: 'Board' },
+  { name: 'CTO', department: 'Board' },
+  { name: 'COO', department: 'Board' },
   // Technology
-  { name: 'Engineering Manager', baseRole: Role.SPV, department: 'Technology' },
-  { name: 'Solution Manager', baseRole: Role.SPV, department: 'Technology' },
-  { name: 'Lead Product Manager', baseRole: Role.SPV, department: 'Technology' },
-  { name: 'Product Manager', baseRole: Role.SPV, department: 'Technology' },
-  { name: 'Sr. Software Engineer', baseRole: Role.EMPLOYEE, department: 'Technology' },
-  { name: 'Sr. AI Software Engineer', baseRole: Role.EMPLOYEE, department: 'Technology' },
-  { name: 'AI Software Engineer', baseRole: Role.EMPLOYEE, department: 'Technology' },
-  { name: 'Full Stack Engineer', baseRole: Role.EMPLOYEE, department: 'Technology' },
-  { name: 'Solution Engineer', baseRole: Role.EMPLOYEE, department: 'Technology' },
-  { name: 'Associate Software Engineer', baseRole: Role.EMPLOYEE, department: 'Technology' },
+  { name: 'Engineering Manager', department: 'Technology' },
+  { name: 'Solution Manager', department: 'Technology' },
+  { name: 'Lead Product Manager', department: 'Technology' },
+  { name: 'Product Manager', department: 'Technology' },
+  { name: 'Sr. Software Engineer', department: 'Technology' },
+  { name: 'Sr. AI Software Engineer', department: 'Technology' },
+  { name: 'AI Software Engineer', department: 'Technology' },
+  { name: 'Full Stack Engineer', department: 'Technology' },
+  { name: 'Solution Engineer', department: 'Technology' },
+  { name: 'Associate Software Engineer', department: 'Technology' },
   // OPS - Project
-  { name: 'Technical Project Manager Supervisor', baseRole: Role.SPV, department: 'OPS - Project' },
-  { name: 'Technical Project Manager', baseRole: Role.SPV, department: 'OPS - Project' },
-  { name: 'Jr. Technical Project Manager', baseRole: Role.EMPLOYEE, department: 'OPS - Project' },
-  { name: 'Jr. TechOps', baseRole: Role.EMPLOYEE, department: 'OPS - Project' },
+  { name: 'Technical Project Manager Supervisor', department: 'OPS - Project' },
+  { name: 'Technical Project Manager', department: 'OPS - Project' },
+  { name: 'Jr. Technical Project Manager', department: 'OPS - Project' },
+  { name: 'Jr. TechOps', department: 'OPS - Project' },
   // OPS - General Support
-  { name: 'FAT Manager', baseRole: Role.SPV, department: 'OPS - General Support' },
-  { name: 'Sr. FAT', baseRole: Role.EMPLOYEE, department: 'OPS - General Support' },
-  { name: 'OB', baseRole: Role.EMPLOYEE, department: 'OPS - General Support' },
+  { name: 'FAT Manager', department: 'OPS - General Support' },
+  { name: 'Sr. FAT', department: 'OPS - General Support' },
+  { name: 'OB', department: 'OPS - General Support' },
   // People & Culture
-  { name: 'People & GA Officer', baseRole: Role.HR, department: 'People & Culture' },
+  { name: 'People & GA Officer', department: 'People & Culture' },
 ];
 
 const LEGACY_REMAP: Record<string, string> = {
@@ -45,7 +45,7 @@ async function main() {
     await prisma.position.upsert({
       where: { name: p.name },
       create: p,
-      update: { baseRole: p.baseRole, department: p.department },
+      update: { department: p.department },
     });
   }
   console.log(`✓ Upsert ${POSITIONS.length} positions Nodeflux`);

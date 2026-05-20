@@ -1,5 +1,7 @@
 'use client';
 
+// Thin wrapper page that renders ReimbursementForm inside a glass card with a page header.
+
 import GlassCard from '@/components/GlassCard';
 import PageHeader, { PageTitle } from '@/components/PageHeader';
 import ReimbursementForm from '@/components/forms/ReimbursementForm';

@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: 'Finance, Integrated Employee Reimbursement System & Approval',
 };
 
+// Root HTML shell. Providers wraps all children with session, AntD config, and i18n context.
+// Aurora background layers are injected here so they persist across all route groups.
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id">
@@ -19,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        {/* Decorative aurora gradient layers — aria-hidden so they don't pollute the a11y tree */}
         <div className="aurora-bg" aria-hidden>
           <div className="aurora aurora-1" />
           <div className="aurora aurora-2" />

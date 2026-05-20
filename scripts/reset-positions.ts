@@ -1,30 +1,30 @@
-import { PrismaClient, type Role } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const SEED: Array<{ name: string; department: string; baseRole: Role }> = [
-  { name: 'AI Software Engineer', department: 'Technology', baseRole: 'EMPLOYEE' },
-  { name: 'Associate Software Engineer', department: 'Technology', baseRole: 'EMPLOYEE' },
-  { name: 'CEO', department: 'Board', baseRole: 'EMPLOYEE' },
-  { name: 'COO', department: 'Board', baseRole: 'EMPLOYEE' },
-  { name: 'CTO', department: 'Board', baseRole: 'EMPLOYEE' },
-  { name: 'Engineering Manager', department: 'Technology', baseRole: 'EMPLOYEE' },
-  { name: 'FAT Manager', department: 'OPS - General Support', baseRole: 'EMPLOYEE' },
-  { name: 'Full Stack Engineer', department: 'Technology', baseRole: 'EMPLOYEE' },
-  { name: 'Jr. Technical Project Manager', department: 'OPS - Project', baseRole: 'EMPLOYEE' },
-  { name: 'Jr. TechOps', department: 'OPS - Project', baseRole: 'EMPLOYEE' },
-  { name: 'Lead Product Manager', department: 'Technology', baseRole: 'EMPLOYEE' },
-  { name: 'OB', department: 'OPS - General Support', baseRole: 'EMPLOYEE' },
-  { name: 'People & GA Officer', department: 'People & Culture', baseRole: 'EMPLOYEE' },
-  { name: 'Product Manager', department: 'Technology', baseRole: 'EMPLOYEE' },
-  { name: 'Solution Engineer', department: 'Technology', baseRole: 'EMPLOYEE' },
-  { name: 'Solution Manager', department: 'Technology', baseRole: 'EMPLOYEE' },
-  { name: 'Sr. AI Software Engineer', department: 'Technology', baseRole: 'EMPLOYEE' },
-  { name: 'Sr. FAT', department: 'OPS - General Support', baseRole: 'EMPLOYEE' },
-  { name: 'Sr. Software Engineer', department: 'Technology', baseRole: 'EMPLOYEE' },
-  { name: 'Technical Project Manager', department: 'OPS - Project', baseRole: 'EMPLOYEE' },
-  { name: 'Technical Project Manager Supervisor', department: 'OPS - Project', baseRole: 'EMPLOYEE' },
-  { name: 'Vision AI Engineer', department: 'Technology', baseRole: 'EMPLOYEE' },
+const SEED: Array<{ name: string; department: string }> = [
+  { name: 'AI Software Engineer', department: 'Technology' },
+  { name: 'Associate Software Engineer', department: 'Technology' },
+  { name: 'CEO', department: 'Board' },
+  { name: 'COO', department: 'Board' },
+  { name: 'CTO', department: 'Board' },
+  { name: 'Engineering Manager', department: 'Technology' },
+  { name: 'FAT Manager', department: 'OPS - General Support' },
+  { name: 'Full Stack Engineer', department: 'Technology' },
+  { name: 'Jr. Technical Project Manager', department: 'OPS - Project' },
+  { name: 'Jr. TechOps', department: 'OPS - Project' },
+  { name: 'Lead Product Manager', department: 'Technology' },
+  { name: 'OB', department: 'OPS - General Support' },
+  { name: 'People & GA Officer', department: 'People & Culture' },
+  { name: 'Product Manager', department: 'Technology' },
+  { name: 'Solution Engineer', department: 'Technology' },
+  { name: 'Solution Manager', department: 'Technology' },
+  { name: 'Sr. AI Software Engineer', department: 'Technology' },
+  { name: 'Sr. FAT', department: 'OPS - General Support' },
+  { name: 'Sr. Software Engineer', department: 'Technology' },
+  { name: 'Technical Project Manager', department: 'OPS - Project' },
+  { name: 'Technical Project Manager Supervisor', department: 'OPS - Project' },
+  { name: 'Vision AI Engineer', department: 'Technology' },
 ];
 
 async function main() {

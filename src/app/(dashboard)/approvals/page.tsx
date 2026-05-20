@@ -1,5 +1,10 @@
 'use client';
 
+// Approvals page with two tabs: Pending (requests awaiting action) and History (past decisions).
+// Pending tab data is a flat list merged from all four request types (overtime/reimbursement/
+// business-trip/leave). History tab supports client-side filtering by kind, status, and date range
+// plus CSV export. Both tabs open the ApprovalModal on row click.
+
 import { Button, DatePicker, Dropdown, Empty, Segmented, Skeleton, Table, Tabs } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -90,6 +95,8 @@ type HistoryTableRow = {
   item: InboxItem;
 };
 
+const PAGE_SIZE = 10;
+
 export default function ApprovalsPage() {
   const [tab, setTab] = useState<'pending' | 'history'>('pending');
   const [pending, setPending] = useState<PendingPayload | null>(null);
@@ -99,6 +106,7 @@ export default function ApprovalsPage() {
   const [kindFilter, setKindFilter] = useState<KindFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [periodRange, setPeriodRange] = useState<DateRange>(null);
+  const [historyPage, setHistoryPage] = useState(1);
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
   const t = useT();
   const { minutesToReadable, pluralDays } = useFormatters();
@@ -128,6 +136,11 @@ export default function ApprovalsPage() {
     load(tab, ctrl.signal);
     return () => ctrl.abort();
   }, [tab]);
+
+  // Reset ke halaman 1 ketika filter berubah atau tab pindah
+  useEffect(() => {
+    setHistoryPage(1);
+  }, [kindFilter, statusFilter, periodRange, tab]);
 
   const pendingRows: PendingTableRow[] = useMemo(() => {
     if (!pending) return [];
@@ -164,24 +177,28 @@ export default function ApprovalsPage() {
     const periodStartMs = periodRange?.[0]?.startOf('day').valueOf() ?? null;
     const periodEndMs = periodRange?.[1]?.endOf('day').valueOf() ?? null;
     const rows: HistoryTableRow[] = [];
+    const seenRequestKeys = new Set<string>();
     for (const h of history) {
-      if (kindFilter !== 'all' && historyKind(h) !== kindFilter) continue;
-      const item: InboxItem | null = h.overtime
+      const kind = historyKind(h);
+      if (!kind) continue;
+      const item: InboxItem = h.overtime
         ? { kind: 'overtime', data: h.overtime }
         : h.reimbursement
         ? { kind: 'reimbursement', data: h.reimbursement }
         : h.trip
         ? { kind: 'business-trip', data: h.trip }
-        : h.leave
-        ? { kind: 'leave', data: h.leave }
-        : null;
-      if (!item) continue;
+        : { kind: 'leave', data: h.leave! };
+      // Dedup: 1 baris per request (entry terlatest karena backend desc)
+      const requestKey = `${kind}-${item.data.id}`;
+      if (seenRequestKeys.has(requestKey)) continue;
+      seenRequestKeys.add(requestKey);
+      if (kindFilter !== 'all' && kind !== kindFilter) continue;
       if (statusFilter !== 'all' && item.data.status !== statusFilter) continue;
       if (periodStartMs !== null && periodEndMs !== null) {
         const ms = dayjs(h.createdAt).valueOf();
         if (ms < periodStartMs || ms > periodEndMs) continue;
       }
-      rows.push({ rowKey: h.id, h, item });
+      rows.push({ rowKey: requestKey, h, item });
     }
     return rows;
   }, [history, kindFilter, statusFilter, periodRange]);
@@ -347,7 +364,7 @@ export default function ApprovalsPage() {
         const statusLabel = statusOptions.find((o) => o.value === statusFilter)?.label ?? '';
         const counter = history ? (
           <span className="approvals-filter-counter">
-            {t('approvals.counter', { shown: historyRows.length, total: history.length })}
+            {t('approvals.counter', { total: historyRows.length })}
           </span>
         ) : null;
         const rangeReady = !!(periodRange && periodRange[0] && periodRange[1]);
@@ -473,7 +490,10 @@ export default function ApprovalsPage() {
       ) : tab === 'pending' ? (
         pendingRows.length === 0 ? (
           <div className="glass p-10 flex items-center justify-center">
-            <Empty description={<span className="text-muted">{t('approvals.emptyPending')}</span>} />
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={<span className="text-muted">{t('approvals.emptyPending')}</span>}
+            />
           </div>
         ) : (
           <>
@@ -521,6 +541,7 @@ export default function ApprovalsPage() {
       ) : historyRows.length === 0 ? (
         <div className="glass p-10 flex items-center justify-center">
           <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={
               <span className="text-muted">
                 {(history ?? []).length === 0 ? t('approvals.emptyHistory') : t('approvals.emptyFilter')}
@@ -536,7 +557,12 @@ export default function ApprovalsPage() {
               columns={historyColumns}
               rowKey="rowKey"
               size="middle"
-              pagination={{ pageSize: 10, showSizeChanger: false }}
+              pagination={{
+                pageSize: PAGE_SIZE,
+                current: historyPage,
+                showSizeChanger: false,
+                onChange: (p) => setHistoryPage(p),
+              }}
               scroll={{ x: 920 }}
               sticky={scrollEl ? { offsetHeader: 0, getContainer: () => scrollEl } : false}
               onRow={(r) => ({
@@ -590,6 +616,7 @@ export default function ApprovalsPage() {
   );
 }
 
+// Colored pill badge showing the request type (overtime / reimbursement / trip / leave).
 function KindTag({ kind }: { kind: InboxItem['kind'] }) {
   const meta = KIND_META[kind];
   const t = useT();

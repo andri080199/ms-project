@@ -1,9 +1,13 @@
 'use client';
 
-import { App, AutoComplete, Avatar, Button, DatePicker, Empty, Form, Input, Modal, Popconfirm, Select, Skeleton, Spin, Switch, Tabs, Tag, Tooltip } from 'antd';
+// Admin user management page. Lists all employees in a card grid with inline search.
+// The "Create/Edit" modal has two tabs (Account + Profile) — the profile tab is only shown
+// when editing, and its data is fetched lazily from /api/admin/users/[id]/profile.
+// Supports bulk operations via CSV import/export accessed from the dropdown button.
+
+import { App, AutoComplete, Avatar, Button, Dropdown, Empty, Form, Input, Modal, Popconfirm, Select, Skeleton, Spin, Switch, Tabs, Tag, Tooltip } from 'antd';
 import type { FormInstance } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, LockOutlined, MailOutlined, PhoneOutlined, IdcardOutlined, ApartmentOutlined, UserOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
-import dayjs, { type Dayjs } from 'dayjs';
+import { PlusOutlined, EditOutlined, DeleteOutlined, LockOutlined, MailOutlined, PhoneOutlined, IdcardOutlined, ApartmentOutlined, UserOutlined, SafetyCertificateOutlined, AuditOutlined, DownloadOutlined, UploadOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import GlassCard from '@/components/GlassCard';
 import PageHeader, { PageTitle } from '@/components/PageHeader';
@@ -12,25 +16,24 @@ import ProfileEditForm, {
   type ProfileEditable,
   type ProfileFormValues,
 } from '@/components/ProfileEditForm';
-import type { Role } from '@prisma/client';
+import ImportUsersModal from '@/components/admin/ImportUsersModal';
 import { useSession } from 'next-auth/react';
 import { DEPARTMENT_OPTIONS } from '@/lib/departments';
 import { useT } from '@/lib/i18n/provider';
 
 
-type Position = { id: string; name: string; baseRole: Role; department: string | null };
+type Position = { id: string; name: string; department: string | null };
 
 type UserRow = {
   id: string;
   employeeId: string | null;
   email: string;
   name: string;
-  role: Role;
   isSuperAdmin: boolean;
+  isApprovalAdmin: boolean;
   phone: string | null;
   department: string | null;
   employmentStatus: string | null;
-  joinDate: string | null;
   spvId: string | null;
   positionId: string | null;
   position: Position | null;
@@ -42,18 +45,17 @@ type FormValues = {
   email: string;
   name: string;
   password?: string;
-  role: Role;
   phone?: string;
   positionId?: string;
   department?: string;
   employmentStatus?: string;
-  joinDate?: Dayjs | null;
   spvId?: string;
   employeeId?: string;
   isSuperAdmin?: boolean;
+  isApprovalAdmin?: boolean;
 };
 
-const SUPER_ADMIN_DEFAULT_POSITION = 'People & GA Officer';
+const APPROVAL_ADMIN_DEFAULT_POSITION = 'People & GA Officer';
 
 export default function UsersPage() {
   const { data: session } = useSession();
@@ -73,6 +75,7 @@ export default function UsersPage() {
   const [profileData, setProfileData] = useState<ProfileEditable | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'akun' | 'profil'>('akun');
+  const [importOpen, setImportOpen] = useState(false);
 
   async function load(signal?: AbortSignal) {
     setLoading(true);
@@ -104,9 +107,9 @@ export default function UsersPage() {
         .filter((u) => u.id !== editing?.id)
         .map((u) => ({
           value: u.id,
-          label: `${u.name} — ${u.position?.name ?? t(`role.${u.role}`)}`,
+          label: u.position?.name ? `${u.name} — ${u.position.name}` : u.name,
         })),
-    [rows, t, editing?.id],
+    [rows, editing?.id],
   );
 
   const filtered = useMemo(() => {
@@ -151,18 +154,17 @@ export default function UsersPage() {
     ? {
         email: editing.email,
         name: editing.name,
-        role: editing.role,
         phone: editing.phone ?? undefined,
         positionId: editing.positionId ?? undefined,
         department: editing.department ?? undefined,
         employmentStatus: editing.employmentStatus ?? undefined,
-        joinDate: editing.joinDate ? dayjs(editing.joinDate) : null,
         spvId: editing.spvId ?? undefined,
         employeeId: editing.employeeId ?? undefined,
         password: '',
         isSuperAdmin: editing.isSuperAdmin,
+        isApprovalAdmin: editing.isApprovalAdmin,
       }
-    : { role: 'EMPLOYEE', name: '', email: '', isSuperAdmin: false, joinDate: null };
+    : { name: '', email: '', isSuperAdmin: false, isApprovalAdmin: false };
 
   async function onSave() {
     let accountValues: FormValues;
@@ -202,24 +204,22 @@ export default function UsersPage() {
         residentialAddress: apiBody.residentialAddress ?? null,
         passportNumber: apiBody.passportNumber ?? null,
         passportExpiry: apiBody.passportExpiry,
+        joinDate: apiBody.joinDate,
       };
     }
 
     setSaving(true);
     try {
-      const pos = positions.find((p) => p.id === accountValues.positionId);
-      const role = pos?.baseRole ?? accountValues.role ?? 'EMPLOYEE';
       const accountBody = {
         ...accountValues,
-        role,
         phone: accountValues.phone || null,
         positionId: accountValues.positionId || null,
         department: accountValues.department || null,
         employmentStatus: accountValues.employmentStatus?.trim() || null,
-        joinDate: accountValues.joinDate ? accountValues.joinDate.toISOString() : null,
         spvId: accountValues.spvId || null,
         employeeId: accountValues.employeeId?.trim() || null,
         isSuperAdmin: !!accountValues.isSuperAdmin,
+        isApprovalAdmin: !!accountValues.isApprovalAdmin,
       };
       const body = { ...accountBody, ...profileBody };
       const url = editing ? `/api/admin/users/${editing.id}` : '/api/admin/users';
@@ -257,10 +257,10 @@ export default function UsersPage() {
     if (!pid) return;
     const p = positions.find((x) => x.id === pid);
     if (!p) return;
-    const updates: Partial<FormValues> = { role: p.baseRole };
+    const updates: Partial<FormValues> = {};
     if (p.department) updates.department = p.department;
-    if (p.name === SUPER_ADMIN_DEFAULT_POSITION) updates.isSuperAdmin = true;
-    queueMicrotask(() => form.setFieldsValue(updates));
+    if (p.name === APPROVAL_ADMIN_DEFAULT_POSITION) updates.isApprovalAdmin = true;
+    if (Object.keys(updates).length) queueMicrotask(() => form.setFieldsValue(updates));
   }
 
   const positionOptions = positions.map((p) => ({
@@ -281,9 +281,52 @@ export default function UsersPage() {
               className="w-full sm:w-[260px]"
               maxLength={100}
             />
-            <Button type="primary" icon={<PlusOutlined />} size="large" onClick={openCreate}>
-              {t('adminUsers.addButton')}
-            </Button>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: 'export',
+                      icon: <DownloadOutlined />,
+                      label: <a href="/api/admin/users/export">{t('adminUsers.csvExport')}</a>,
+                    },
+                    {
+                      key: 'import',
+                      icon: <UploadOutlined />,
+                      label: t('adminUsers.csvImport'),
+                      onClick: () => setImportOpen(true),
+                    },
+                    { type: 'divider' as const },
+                    {
+                      key: 'template',
+                      icon: <FileTextOutlined />,
+                      label: (
+                        <a href="/api/admin/users/export?template=1">{t('adminUsers.csvTemplate')}</a>
+                      ),
+                    },
+                  ],
+                }}
+                trigger={['click']}
+              >
+                <Tooltip title={t('adminUsers.csvMenu')}>
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<DownloadOutlined />}
+                    aria-label={t('adminUsers.csvMenu')}
+                  />
+                </Tooltip>
+              </Dropdown>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                size="large"
+                onClick={openCreate}
+                className="flex-1 sm:flex-none"
+              >
+                {t('adminUsers.addButton')}
+              </Button>
+            </div>
           </div>
         </div>
       </PageHeader>
@@ -320,7 +363,16 @@ export default function UsersPage() {
                           icon={<SafetyCertificateOutlined />}
                           style={{ margin: 0 }}
                         >
-                          {t('role.SUPER_ADMIN')}
+                          {t('common.superAdmin')}
+                        </Tag>
+                      )}
+                      {u.isApprovalAdmin && (
+                        <Tag
+                          color="geekblue"
+                          icon={<AuditOutlined />}
+                          style={{ margin: 0 }}
+                        >
+                          {t('common.approvalAdmin')}
                         </Tag>
                       )}
                       {u.employeeId && (
@@ -457,6 +509,12 @@ export default function UsersPage() {
           />
         )}
       </Modal>
+
+      <ImportUsersModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={() => load()}
+      />
     </div>
   );
 }
@@ -566,23 +624,9 @@ function AccountFormSection({
         <Input placeholder={t('adminUsers.phonePlaceholder')} maxLength={30} />
       </Form.Item>
 
-      <div className="grid md:grid-cols-2 gap-3">
-        <Form.Item label={t('adminUsers.labelEmploymentStatus')} name="employmentStatus">
-          <Input placeholder={t('adminUsers.employmentStatusPlaceholder')} maxLength={100} />
-        </Form.Item>
-        <Form.Item
-          label={t('adminUsers.labelJoinDate')}
-          name="joinDate"
-          tooltip={t('adminUsers.joinDateTooltip')}
-        >
-          <DatePicker
-            className="w-full"
-            format="DD MMM YYYY"
-            placeholder={t('adminUsers.joinDatePlaceholder')}
-            classNames={{ popup: { root: 'app-date-popup' } }}
-          />
-        </Form.Item>
-      </div>
+      <Form.Item label={t('adminUsers.labelEmploymentStatus')} name="employmentStatus">
+        <Input placeholder={t('adminUsers.employmentStatusPlaceholder')} maxLength={100} />
+      </Form.Item>
 
       <Form.Item
         label={t('adminUsers.labelApproval')}
@@ -592,19 +636,34 @@ function AccountFormSection({
         <ApproverSearch options={spvOptions} placeholder={t('adminUsers.approvalPlaceholder')} />
       </Form.Item>
 
-      <Form.Item
-        label={
-          <span className="flex items-center gap-2">
-            <SafetyCertificateOutlined style={{ color: 'rgb(var(--color-warning))' }} />
-            {t('adminUsers.labelSuperAdmin')}
-          </span>
-        }
-        name="isSuperAdmin"
-        valuePropName="checked"
-        tooltip={t('adminUsers.superAdminTooltip')}
-      >
-        <Switch checkedChildren={t('adminUsers.switchOn')} unCheckedChildren={t('adminUsers.switchOff')} />
-      </Form.Item>
+      <div className="grid md:grid-cols-2 gap-3">
+        <Form.Item
+          label={
+            <span className="flex items-center gap-2">
+              <SafetyCertificateOutlined style={{ color: 'rgb(var(--color-warning))' }} />
+              {t('adminUsers.labelSuperAdmin')}
+            </span>
+          }
+          name="isSuperAdmin"
+          valuePropName="checked"
+          tooltip={t('adminUsers.superAdminTooltip')}
+        >
+          <Switch checkedChildren={t('adminUsers.switchOn')} unCheckedChildren={t('adminUsers.switchOff')} />
+        </Form.Item>
+        <Form.Item
+          label={
+            <span className="flex items-center gap-2">
+              <AuditOutlined style={{ color: 'rgb(var(--color-info, 14,165,233))' }} />
+              {t('adminUsers.labelApprovalAdmin')}
+            </span>
+          }
+          name="isApprovalAdmin"
+          valuePropName="checked"
+          tooltip={t('adminUsers.approvalAdminTooltip')}
+        >
+          <Switch checkedChildren={t('adminUsers.switchOn')} unCheckedChildren={t('adminUsers.switchOff')} />
+        </Form.Item>
+      </div>
     </Form>
   );
 }
@@ -616,6 +675,8 @@ type ApproverSearchProps = {
   placeholder?: string;
 };
 
+// Controlled AutoComplete for SPV (supervisor) selection.
+// Displays the matched user's name when a value is set; clears back to the last valid match on blur.
 function ApproverSearch({ value, onChange, options, placeholder }: ApproverSearchProps) {
   const [text, setText] = useState('');
 

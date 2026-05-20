@@ -7,13 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  EMPLOYEE
-  SPV
-  HR
-  ADMIN
-}
-
 enum RequestStatus {
   DRAFT
   SUBMITTED
@@ -90,7 +83,6 @@ enum OvertimeType {
 model Position {
   id         String   @id @default(cuid())
   name       String   @unique
-  baseRole   Role
   department String?
   users      User[]
   createdAt  DateTime @default(now())
@@ -103,8 +95,8 @@ model User {
   email          String                 @unique
   name           String
   password       String
-  role           Role                   @default(EMPLOYEE)
   isSuperAdmin   Boolean                @default(false)
+  isApprovalAdmin Boolean               @default(false)
   phone          String?
   department     String?
   employmentStatus String?
@@ -131,12 +123,27 @@ model User {
 
   overtimes      OvertimeRequest[]
   reimbursements ReimbursementRequest[]
+  reimbursementsToApprove ReimbursementRequest[] @relation("ReimbursementApprover")
   trips          BusinessTripRequest[]
   leaves         LeaveRequest[]
   approvals      ApprovalHistory[]      @relation("Approver")
   attachments    Attachment[]
+  passwordResets PasswordResetToken[]
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Attachment {
@@ -179,6 +186,8 @@ model ReimbursementRequest {
   id             String              @id @default(cuid())
   userId         String
   user           User                @relation(fields: [userId], references: [id])
+  approverId     String?
+  approver       User?               @relation("ReimbursementApprover", fields: [approverId], references: [id])
   totalAmount    Int
   status         RequestStatus       @default(SUBMITTED)
   hrApprovedAt   DateTime?
@@ -189,6 +198,7 @@ model ReimbursementRequest {
   updatedAt      DateTime            @updatedAt
 
   @@index([userId])
+  @@index([approverId])
   @@index([status])
 }
 

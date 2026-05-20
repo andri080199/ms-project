@@ -5,9 +5,16 @@ import { prisma } from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+// Allowed MIME types for uploaded attachments.
 const ALLOWED = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'];
+
+// Maximum file size: 5 MB.
 const MAX = 5 * 1024 * 1024;
 
+// POST /api/upload
+// Stores a single file in the database `Attachment` table and returns the URL
+// to the file serve endpoint (/api/files/[id]).
+// Auth required. File must be ≤5 MB and one of the ALLOWED types.
 export async function POST(req: Request) {
   try {
     const session = await auth();
@@ -26,6 +33,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Ukuran file maksimal 5MB' }, { status: 400 });
     }
     const buf = Buffer.from(await file.arrayBuffer());
+    // Sanitize the filename before storing — strip special chars, keep extension.
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 200);
     const created = await prisma.attachment.create({
       data: {

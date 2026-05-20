@@ -7,6 +7,8 @@ import { userCreateSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
+// GET /api/admin/users — lists all user accounts with full admin detail.
+// Requires super-admin role (canManageUsers).
 export async function GET() {
   try {
     const session = await auth();
@@ -17,21 +19,21 @@ export async function GET() {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
     const data = await prisma.user.findMany({
-      orderBy: [{ role: 'asc' }, { name: 'asc' }],
+      orderBy: { name: 'asc' },
       select: {
         id: true,
         employeeId: true,
         email: true,
         name: true,
-        role: true,
         isSuperAdmin: true,
+        isApprovalAdmin: true,
         phone: true,
         department: true,
         employmentStatus: true,
         spvId: true,
         positionId: true,
         joinDate: true,
-        position: { select: { id: true, name: true, baseRole: true, department: true } },
+        position: { select: { id: true, name: true, department: true } },
         spv: { select: { id: true, name: true } },
         createdAt: true,
       },
@@ -43,6 +45,9 @@ export async function GET() {
   }
 }
 
+// POST /api/admin/users — creates a new user account.
+// Requires super-admin role. Validates for duplicate email and employee ID.
+// Automatically sets `isApprovalAdmin: true` for "People & GA Officer" positions.
 export async function POST(req: Request) {
   try {
     const session = await auth();
@@ -64,13 +69,14 @@ export async function POST(req: Request) {
     if (exists) {
       return NextResponse.json({ success: false, error: 'Email sudah terdaftar' }, { status: 409 });
     }
-    let positionDefault: { isSuperAdmin?: boolean } = {};
+    // Auto-grant approval-admin if the position is "People & GA Officer".
+    let positionDefault: { isApprovalAdmin?: boolean } = {};
     if (parsed.data.positionId) {
       const pos = await prisma.position.findUnique({ where: { id: parsed.data.positionId } });
       if (!pos) {
         return NextResponse.json({ success: false, error: 'Posisi tidak ditemukan' }, { status: 400 });
       }
-      if (pos.name === 'People & GA Officer') positionDefault = { isSuperAdmin: true };
+      if (pos.name === 'People & GA Officer') positionDefault = { isApprovalAdmin: true };
     }
     const employeeId = parsed.data.employeeId?.trim() || null;
     if (employeeId) {
@@ -85,17 +91,17 @@ export async function POST(req: Request) {
         email: parsed.data.email,
         name: parsed.data.name,
         password: hash,
-        role: parsed.data.role,
         phone: parsed.data.phone ?? null,
         positionId: parsed.data.positionId ?? null,
         department: parsed.data.department ?? null,
         employmentStatus: parsed.data.employmentStatus?.trim() || null,
         spvId: parsed.data.spvId ?? null,
         employeeId,
-        isSuperAdmin: parsed.data.isSuperAdmin ?? positionDefault.isSuperAdmin ?? false,
+        isSuperAdmin: parsed.data.isSuperAdmin ?? false,
+        isApprovalAdmin: parsed.data.isApprovalAdmin ?? positionDefault.isApprovalAdmin ?? false,
         joinDate: parsed.data.joinDate ? new Date(parsed.data.joinDate) : null,
       },
-      select: { id: true, employeeId: true, email: true, name: true, role: true, isSuperAdmin: true },
+      select: { id: true, employeeId: true, email: true, name: true, isSuperAdmin: true, isApprovalAdmin: true },
     });
     return NextResponse.json({ success: true, data: created }, { status: 201 });
   } catch (e) {

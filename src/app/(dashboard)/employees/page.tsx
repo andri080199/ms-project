@@ -1,5 +1,9 @@
 'use client';
 
+// Employee directory — read-only public list of all employees.
+// Desktop shows a full AntD table; mobile shows a compact list with initials avatars.
+// Clicking any row opens a detail modal. WhatsApp links are generated from phone numbers.
+
 import { Avatar, Empty, Input, Modal, Skeleton, Table } from 'antd';
 import { WhatsAppOutlined } from '@ant-design/icons';
 import { useEffect, useMemo, useState } from 'react';

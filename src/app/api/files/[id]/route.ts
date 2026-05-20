@@ -3,8 +3,14 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
+// nodejs runtime required because we return a raw Buffer (binary blob from the DB).
 export const runtime = 'nodejs';
 
+// Serves a file stored as a binary blob in the Attachment table.
+// Any authenticated user can fetch files — access control is handled at the submission level
+// (users can only view requests they own/approve, so they only ever get valid file IDs).
+// The response uses `inline` disposition so images/PDFs open in-browser rather than downloading.
+// Cache-Control: private, 1-hour — avoids repeated DB reads for the same file in a session.
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
@@ -19,6 +25,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     if (!file) {
       return NextResponse.json({ success: false, error: 'File tidak ditemukan' }, { status: 404 });
     }
+    // Percent-encode the filename for the RFC 5987 UTF-8 extended parameter.
     const encoded = encodeURIComponent(file.filename);
     return new NextResponse(new Uint8Array(file.data), {
       headers: {

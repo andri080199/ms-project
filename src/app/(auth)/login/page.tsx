@@ -1,8 +1,13 @@
 'use client';
 
-import { Button, Form, Input, Typography, App, Dropdown } from 'antd';
+// Login page. Uses NextAuth credentials provider with redirect:false so errors
+// can be shown inline rather than on a separate error page.
+// Wrapped in Suspense because LoginInner calls useSearchParams (which suspends during SSR).
+
+import { Button, Form, Input, Skeleton, Typography, App, Dropdown } from 'antd';
 import { signIn } from 'next-auth/react';
 import { Suspense, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckOutlined, EyeInvisibleOutlined, EyeOutlined, GlobalOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { useI18n } from '@/lib/i18n/provider';
@@ -12,9 +17,29 @@ const { Text } = Typography;
 
 type LoginForm = { email: string; password: string };
 
+function LoginSkeleton() {
+  return (
+    <div className="relative z-10 min-h-screen flex items-center justify-center p-2 md:p-6">
+      <div className="glass login-card w-full max-w-lg p-4 md:p-8 space-y-6">
+        <div className="space-y-2 text-center flex flex-col items-center">
+          <Skeleton.Input active size="large" style={{ width: 180, height: 40 }} />
+          <Skeleton.Input active size="small" style={{ width: 220, height: 16 }} />
+        </div>
+        <div className="space-y-4">
+          <Skeleton.Input active block size="large" />
+          <Skeleton.Input active block size="large" />
+          <div className="flex justify-center pt-1">
+            <Skeleton.Button active size="large" style={{ width: 160 }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="relative z-10 min-h-screen" />}>
+    <Suspense fallback={<LoginSkeleton />}>
       <LoginInner />
     </Suspense>
   );
@@ -50,7 +75,7 @@ function LoginInner() {
   }
 
   return (
-    <div className="relative z-10 min-h-screen flex items-center justify-center p-6">
+    <div className="relative z-10 min-h-screen flex items-center justify-center p-2 md:p-6">
       <div className="absolute top-4 right-4 z-20">
         <Dropdown
           menu={{
@@ -80,10 +105,9 @@ function LoginInner() {
         </Dropdown>
       </div>
 
-      <div className="glass login-card page-enter w-full max-w-md p-8 space-y-6">
+      <div className="glass login-card page-enter w-full max-w-lg p-4 md:p-8 space-y-6">
         <div className="space-y-1 text-center">
           <h1 className="login-brand">{t('brand.name')}</h1>
-          <Text className="text-muted">{t('brand.tagline')}</Text>
           <div className="pt-1">
             <Text className="text-muted text-xs">{t('login.hint')}</Text>
           </div>
@@ -104,6 +128,7 @@ function LoginInner() {
             label={t('login.passwordLabel')}
             name="password"
             rules={[{ required: true, message: t('login.passwordRequired') }]}
+            className="!mb-2"
           >
             <Input
               type={showPassword ? 'text' : 'password'}
@@ -130,6 +155,15 @@ function LoginInner() {
               maxLength={100}
             />
           </Form.Item>
+          <div className="flex justify-end mb-4">
+            <Link
+              href="/forgot-password"
+              className="text-xs hover:underline"
+              style={{ color: 'rgb(var(--color-text-secondary))' }}
+            >
+              {t('login.forgotLink')}
+            </Link>
+          </div>
           <Form.Item className="!mb-0">
             <div className="flex justify-center pt-1">
               <Button

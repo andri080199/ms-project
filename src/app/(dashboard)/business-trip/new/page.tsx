@@ -1,5 +1,7 @@
 'use client';
 
+// Thin wrapper page that renders BusinessTripForm inside a glass card with a page header.
+
 import GlassCard from '@/components/GlassCard';
 import PageHeader, { PageTitle } from '@/components/PageHeader';
 import BusinessTripForm from '@/components/forms/BusinessTripForm';

@@ -797,14 +797,20 @@ body {
 .login-card .ant-input-affix-wrapper:hover,
 .login-card .ant-input:hover {
   border-color: rgb(var(--color-primary-300)) !important;
+  background: #ffffff !important;
+}
+.login-card .ant-input-affix-wrapper:hover > input.ant-input {
   background: transparent !important;
 }
 .login-card .ant-input-affix-wrapper-focused,
 .login-card .ant-input:focus,
 .login-card .ant-input-focused {
-  background: transparent !important;
+  background: #ffffff !important;
   border-color: rgb(var(--color-primary-300)) !important;
   box-shadow: 0 0 0 3px rgb(var(--color-primary-300) / 0.2) !important;
+}
+.login-card .ant-input-affix-wrapper-focused > input.ant-input {
+  background: transparent !important;
 }
 .login-card input:-webkit-autofill,
 .login-card input:-webkit-autofill:hover,
@@ -872,6 +878,38 @@ body {
   height: 28px;
   padding: 0 14px;
   font-size: 12px;
+}
+
+/* Icon-only primary — square brand pill, matches text-primary visual */
+.ant-btn-icon-only.ant-btn-primary:not(.ant-btn-dangerous) {
+  height: 36px;
+  width: 36px;
+  border-radius: 9999px;
+  background: var(--gradient-brand) !important;
+  border: 1px solid rgb(var(--color-primary-300) / 0.55) !important;
+  color: #fff !important;
+  box-shadow:
+    0 6px 18px -6px rgb(var(--color-primary-700) / 0.55),
+    0 0 0 1px rgb(255 255 255 / 0.06) inset;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.ant-btn-icon-only.ant-btn-primary:not(.ant-btn-dangerous):hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow:
+    0 10px 24px -6px rgb(var(--color-primary-700) / 0.75),
+    0 0 0 1px rgb(255 255 255 / 0.1) inset;
+}
+.ant-btn-icon-only.ant-btn-primary:not(.ant-btn-dangerous):active {
+  transform: translateY(0);
+}
+.ant-btn-lg.ant-btn-icon-only.ant-btn-primary:not(.ant-btn-dangerous) {
+  height: 40px;
+  width: 40px;
+}
+.ant-btn-sm.ant-btn-icon-only.ant-btn-primary:not(.ant-btn-dangerous) {
+  height: 28px;
+  width: 28px;
 }
 
 /* Default (outline) buttons — pill ghost with brand border */
@@ -1155,9 +1193,19 @@ body {
   font-weight: 600;
 }
 .approvals-period-picker.ant-picker .ant-picker-suffix,
-.approvals-period-picker.ant-picker .ant-picker-clear,
 .approvals-period-picker.ant-picker .ant-picker-separator {
   color: rgb(255 255 255 / 0.75) !important;
+}
+.approvals-period-picker.ant-picker .ant-picker-clear {
+  color: rgb(var(--color-primary-900)) !important;
+  background: #fff !important;
+  border-radius: 9999px;
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1 !important;
 }
 .approvals-period-picker.ant-picker:hover,
 .approvals-period-picker.ant-picker-focused {
@@ -1180,11 +1228,23 @@ body {
   width: 34px;
   text-align: center;
 }
-.approvals-filters-mobile .filter-field-period .ant-picker .ant-picker-suffix,
-.approvals-filters-mobile .filter-field-period .ant-picker .ant-picker-clear {
+.approvals-filters-mobile .filter-field-period .ant-picker .ant-picker-suffix {
   color: rgb(255 255 255 / 0.8) !important;
   font-size: 10px;
   margin-inline-start: 4px;
+}
+.approvals-filters-mobile .filter-field-period .ant-picker .ant-picker-clear {
+  color: rgb(var(--color-primary-900)) !important;
+  background: #fff !important;
+  border-radius: 9999px;
+  font-size: 11px;
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-inline-start: 4px;
+  opacity: 1 !important;
 }
 .approvals-filters-mobile .filter-field-period .ant-picker .ant-picker-separator {
   color: rgb(255 255 255 / 0.7) !important;
@@ -1450,6 +1510,47 @@ body {
   border: none !important;
 }
 
+/* Selected/range cells — brand gradient instead of default dark */
+.app-date-popup .ant-picker-cell-selected .ant-picker-cell-inner,
+.app-date-popup .ant-picker-cell-range-start:not(.ant-picker-cell-range-start-single) .ant-picker-cell-inner,
+.app-date-popup .ant-picker-cell-range-end:not(.ant-picker-cell-range-end-single) .ant-picker-cell-inner,
+.app-date-popup .ant-picker-cell-range-start.ant-picker-cell-range-start-single .ant-picker-cell-inner,
+.app-date-popup .ant-picker-cell-range-end.ant-picker-cell-range-end-single .ant-picker-cell-inner {
+  background: var(--gradient-brand) !important;
+  color: #fff !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px -4px rgb(var(--color-primary-700) / 0.6) !important;
+}
+.app-date-popup .ant-picker-cell-in-range::before,
+.app-date-popup .ant-picker-cell-range-hover::before,
+.app-date-popup .ant-picker-cell-range-hover-start::before,
+.app-date-popup .ant-picker-cell-range-hover-end::before {
+  background: rgb(var(--color-primary-500) / 0.22) !important;
+}
+.app-date-popup .ant-picker-cell-in-range .ant-picker-cell-inner {
+  color: #fff !important;
+}
+.app-date-popup .ant-picker-cell-today .ant-picker-cell-inner::before {
+  border: 1px solid rgb(var(--color-primary-300)) !important;
+  border-radius: 8px !important;
+}
+
+/* Sabtu (kolom 7) & Minggu (kolom 1) — angka tanggal warna merah */
+.app-date-popup .ant-picker-content thead th:first-child,
+.app-date-popup .ant-picker-content thead th:last-child {
+  color: rgb(var(--color-danger));
+}
+.app-date-popup .ant-picker-content tbody tr td:first-child.ant-picker-cell-in-view:not(.ant-picker-cell-disabled) .ant-picker-cell-inner,
+.app-date-popup .ant-picker-content tbody tr td:last-child.ant-picker-cell-in-view:not(.ant-picker-cell-disabled) .ant-picker-cell-inner {
+  color: rgb(var(--color-danger));
+}
+
+/* Hide calendar suffix icon when the picker has a value (clear button visible).
+ * Uses :has + :not(:placeholder-shown) — supported in modern browsers. */
+.ant-picker:has(input:not(:placeholder-shown)) .ant-picker-suffix {
+  display: none !important;
+}
+
 /* Single-month view for RangePicker — hide the right panel */
 .app-date-popup.single-month-panel .ant-picker-panels > *:nth-child(n + 2) {
   display: none !important;
@@ -1492,3 +1593,89 @@ aside .ant-menu-submenu-selected > .ant-menu-submenu-title:hover {
 .ant-menu-submenu-popup .ant-menu-submenu-title {
   color: rgb(var(--color-text-primary)) !important;
 }
+
+/* Popconfirm — normalisasi ukuran tombol ok/cancel + compact di mobile */
+.ant-popconfirm-buttons .ant-btn,
+.ant-popconfirm-buttons .ant-btn.ant-btn-sm,
+.ant-popconfirm-buttons .ant-btn.ant-btn-dangerous {
+  min-width: 64px !important;
+  height: 32px !important;
+  line-height: 1 !important;
+  font-size: 13px !important;
+  padding: 0 12px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+@media (max-width: 767px) {
+  .ant-popconfirm {
+    max-width: 280px;
+  }
+  .ant-popconfirm .ant-popover-inner {
+    padding: 10px 12px !important;
+  }
+  .ant-popconfirm .ant-popconfirm-message-title {
+    font-size: 12.5px !important;
+    line-height: 1.4 !important;
+  }
+  .ant-popconfirm .ant-popconfirm-description {
+    font-size: 11.5px !important;
+    line-height: 1.35 !important;
+    margin-top: 4px !important;
+  }
+  .ant-popconfirm .ant-popconfirm-buttons {
+    margin-top: 8px !important;
+  }
+  .ant-popconfirm-buttons .ant-btn,
+  .ant-popconfirm-buttons .ant-btn.ant-btn-sm,
+  .ant-popconfirm-buttons .ant-btn.ant-btn-dangerous {
+    min-width: 56px !important;
+    height: 28px !important;
+    font-size: 12px !important;
+    padding: 0 10px !important;
+  }
+}
+
+/* Approval modal — shrink text on mobile for compact view */
+@media (max-width: 767px) {
+  .approval-modal-content {
+    font-size: 12px;
+  }
+  .approval-modal-content .text-sm {
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+  }
+  .approval-modal-content .text-xs {
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+  }
+  .approval-modal-content .ant-typography {
+    font-size: 13px;
+  }
+  .approval-modal-content h5.ant-typography {
+    font-size: 13px !important;
+    margin: 0 !important;
+  }
+  .approval-modal-content .ant-descriptions-item-label,
+  .approval-modal-content .ant-descriptions-item-content {
+    font-size: 11.5px !important;
+    padding: 6px 8px !important;
+  }
+  .approval-modal-content .ant-tag {
+    font-size: 10.5px !important;
+    line-height: 1.4 !important;
+    padding: 0 6px !important;
+  }
+  .approval-modal-content .ant-input,
+  .approval-modal-content .ant-input-affix-wrapper,
+  .approval-modal-content textarea.ant-input {
+    font-size: 12px !important;
+  }
+  .approval-modal-content .ant-btn {
+    font-size: 12px !important;
+    height: 32px !important;
+    padding: 0 12px !important;
+  }
+}
+

@@ -14,7 +14,7 @@ async function main() {
   const updated = await prisma.user.update({
     where: { id: existing.id },
     data: { email: 'andri@nodeflux.io' },
-    select: { id: true, name: true, email: true, role: true },
+    select: { id: true, name: true, email: true, isSuperAdmin: true },
   });
   console.log('Updated:', updated);
 }

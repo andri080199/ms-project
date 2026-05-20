@@ -7,6 +7,9 @@ import { userUpdateSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
+// PATCH /api/admin/users/[id] — partially updates a user account.
+// Requires super-admin role. Validates for self-SPV, duplicate email, and duplicate employee ID.
+// An empty password field means "do not change the password".
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
@@ -27,14 +30,20 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     }
     const p = parsed.data;
     const data: Record<string, unknown> = { ...p };
+
+    // Hash the new password if provided; otherwise remove it from the update payload.
     if (p.password) {
       data.password = await bcrypt.hash(p.password, 10);
     } else {
       delete data.password;
     }
+
+    // Prevent a user from being set as their own supervisor.
     if (data.spvId === id) {
       return NextResponse.json({ success: false, error: 'User tidak bisa menjadi SPV dirinya sendiri' }, { status: 400 });
     }
+
+    // Guard against email collision with another account.
     if (p.email) {
       const dup = await prisma.user.findFirst({
         where: { email: p.email, NOT: { id } },
@@ -44,6 +53,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
         return NextResponse.json({ success: false, error: 'Email sudah dipakai' }, { status: 409 });
       }
     }
+
+    // Guard against employee ID collision with another account.
     if (Object.prototype.hasOwnProperty.call(data, 'employeeId')) {
       const eid = (data.employeeId as string | null | undefined)?.trim() || null;
       if (eid) {
@@ -57,10 +68,14 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       }
       data.employeeId = eid;
     }
+
+    // Normalize employmentStatus: trim whitespace, treat empty as null.
     if (Object.prototype.hasOwnProperty.call(data, 'employmentStatus')) {
       const es = (data.employmentStatus as string | null | undefined);
       data.employmentStatus = es && es.trim() ? es.trim() : null;
     }
+
+    // Convert ISO date strings to Date objects for Prisma.
     if (Object.prototype.hasOwnProperty.call(data, 'birthdate')) {
       data.birthdate = p.birthdate ? new Date(p.birthdate) : null;
     }
@@ -70,10 +85,11 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     if (Object.prototype.hasOwnProperty.call(data, 'joinDate')) {
       data.joinDate = p.joinDate ? new Date(p.joinDate) : null;
     }
+
     const updated = await prisma.user.update({
       where: { id },
       data,
-      select: { id: true, employeeId: true, email: true, name: true, role: true },
+      select: { id: true, employeeId: true, email: true, name: true, isSuperAdmin: true, isApprovalAdmin: true },
     });
     return NextResponse.json({ success: true, data: updated });
   } catch (e) {
@@ -82,6 +98,11 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   }
 }
 
+// DELETE /api/admin/users/[id] — deletes a user account.
+// Requires super-admin role. Prevents:
+//   - Self-deletion
+//   - Deletion of accounts with existing requests (data integrity)
+//   - Deletion of accounts that still have subordinates (must reassign first)
 export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
@@ -95,6 +116,7 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
     if (id === session.user.id) {
       return NextResponse.json({ success: false, error: 'Tidak bisa menghapus akun sendiri' }, { status: 400 });
     }
+    // Check for referential integrity — cannot delete if requests exist.
     const [ot, rb, trip, subordinates] = await Promise.all([
       prisma.overtimeRequest.count({ where: { userId: id } }),
       prisma.reimbursementRequest.count({ where: { userId: id } }),

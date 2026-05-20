@@ -6,6 +6,7 @@ import { positionUpdateSchema } from '@/lib/schemas';
 
 export const dynamic = 'force-dynamic';
 
+// Updates the name of a position. Requires super-admin privileges.
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
@@ -32,6 +33,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   }
 }
 
+// Deletes a position. Blocked if any user is currently assigned to it to prevent orphan records.
 export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();

@@ -10,6 +10,7 @@ import { useT } from '@/lib/i18n/provider';
 
 const { Title } = Typography;
 
+// All fields that can be read from the API and displayed in the profile form.
 export type ProfileEditable = {
   employeeId: string | null;
   email: string;
@@ -28,8 +29,10 @@ export type ProfileEditable = {
   residentialAddress: string | null;
   passportNumber: string | null;
   passportExpiry: string | null;
+  joinDate: string | null;
 };
 
+// AntD form values — date fields are Dayjs objects rather than ISO strings.
 export type ProfileFormValues = {
   name: string;
   email: string;
@@ -48,6 +51,7 @@ export type ProfileFormValues = {
   residentialAddress?: string;
   passportNumber?: string;
   passportExpiry?: Dayjs | null;
+  joinDate?: Dayjs | null;
 };
 
 const BLOOD_OPTIONS = [
@@ -60,6 +64,7 @@ const RELIGION_OPTIONS = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Kon
   (v) => ({ value: v, label: v })
 );
 
+// Converts API profile data (ISO date strings) to AntD form-compatible Dayjs objects.
 export function profileToFormValues(p: ProfileEditable): ProfileFormValues {
   return {
     name: p.name,
@@ -79,14 +84,17 @@ export function profileToFormValues(p: ProfileEditable): ProfileFormValues {
     residentialAddress: p.residentialAddress ?? undefined,
     passportNumber: p.passportNumber ?? undefined,
     passportExpiry: p.passportExpiry ? dayjs(p.passportExpiry) : null,
+    joinDate: p.joinDate ? dayjs(p.joinDate) : null,
   };
 }
 
+// Converts Dayjs date fields back to ISO strings for the API request body.
 export function formValuesToApiBody(values: ProfileFormValues) {
   return {
     ...values,
     birthdate: values.birthdate ? values.birthdate.toISOString() : null,
     passportExpiry: values.passportExpiry ? values.passportExpiry.toISOString() : null,
+    joinDate: values.joinDate ? values.joinDate.toISOString() : null,
   };
 }
 
@@ -96,13 +104,20 @@ type Props = {
   onSubmit: (values: ProfileFormValues) => void | Promise<void>;
   onCancel: () => void;
   submitLabel?: string;
+  // 'page' wraps each section in a GlassCard; 'modal' renders flat with a divider.
   variant?: 'page' | 'modal';
+  // When true, hides employeeId / email / name / phone fields (used in the "self-edit" flow
+  // where those identity fields are managed separately by admins).
   hideIdentityFields?: boolean;
+  // When true, the save/cancel footer buttons are omitted (caller renders its own footer).
   hideFooter?: boolean;
   formId?: string;
+  // Ref to expose the AntD FormInstance to the parent (used to submit from an external button).
   formRef?: React.MutableRefObject<FormInstance<ProfileFormValues> | null>;
 };
 
+// Reusable profile edit form used on both the self-edit profile page and the admin user modal.
+// Splits fields into two visual sections: personal data and identity/address details.
 export default function ProfileEditForm({
   profile,
   saving,
@@ -117,15 +132,22 @@ export default function ProfileEditForm({
 }: Props) {
   const t = useT();
   const [form] = Form.useForm<ProfileFormValues>();
+
+  // Watch birthdate to compute and display the person's age next to the date picker.
   const birthdateWatch = Form.useWatch('birthdate', form);
   const formAge = birthdateWatch && birthdateWatch.isValid() ? dayjs().diff(birthdateWatch, 'year') : null;
   const initialValues = useMemo(() => profileToFormValues(profile), [profile]);
+
+  // Track whether the first render has happened so we skip the initial setFieldsValues call
+  // (AntD Form already receives initialValues via props on mount).
   const didInit = useRef(false);
 
+  // Expose the form instance via ref so a parent modal can call form.submit().
   useEffect(() => {
     if (formRef) formRef.current = form;
   }, [form, formRef]);
 
+  // Re-populate the form when profile data changes (e.g. parent re-fetches after a save).
   useEffect(() => {
     if (didInit.current) {
       form.setFieldsValue(initialValues);
@@ -152,6 +174,8 @@ export default function ProfileEditForm({
     [t],
   );
 
+  // Section 1: personal data — identity fields (employeeId, email, name, phone) are
+  // conditionally hidden when hideIdentityFields is true.
   const dataSection = (
     <>
       <Title level={4} style={{ margin: 0, color: 'rgb(var(--color-text-primary))' }}>
@@ -169,6 +193,7 @@ export default function ProfileEditForm({
                 { pattern: /^\d+$/, message: t('profile.empIdDigits') },
                 { max: 20 },
               ]}
+              // Strip any non-digit characters as the user types.
               normalize={(v: string | undefined) => (v ?? '').replace(/\D/g, '')}
             >
               <Input
@@ -209,16 +234,18 @@ export default function ProfileEditForm({
         </>
       )}
 
+      {/* When identity fields are hidden, only show additional phone (user self-edit use case) */}
       {hideIdentityFields && (
         <Form.Item label={t('profile.labelAdditionalPhone')} name="additionalPhone">
           <Input placeholder={t('profile.additionalPhonePlaceholder')} maxLength={30} />
         </Form.Item>
       )}
 
-      <div className="grid md:grid-cols-2 gap-3">
+      <div className="grid md:grid-cols-3 gap-3">
         <Form.Item label={t('profile.labelPlaceOfBirth')} name="placeOfBirth">
           <Input placeholder={t('profile.placeOfBirthPlaceholder')} maxLength={100} />
         </Form.Item>
+        {/* Birthdate picker shows computed age as a suffix icon */}
         <Form.Item label={t('profile.labelBirthdate')} name="birthdate">
           <DatePicker
             className="w-full"
@@ -230,6 +257,14 @@ export default function ProfileEditForm({
                 <span className="text-xs text-muted">{t('profile.ageSuffixForm', { n: formAge })}</span>
               ) : undefined
             }
+          />
+        </Form.Item>
+        <Form.Item label={t('profile.labelJoinDate')} name="joinDate">
+          <DatePicker
+            className="w-full"
+            format="DD MMM YYYY"
+            placeholder={t('profile.joinDatePlaceholder')}
+            classNames={{ popup: { root: 'app-date-popup' } }}
           />
         </Form.Item>
       </div>
@@ -271,6 +306,7 @@ export default function ProfileEditForm({
     </>
   );
 
+  // Section 2: national ID, address, and passport details.
   const identitySection = (
     <>
       <Title level={4} style={{ margin: 0, color: 'rgb(var(--color-text-primary))' }}>
@@ -318,9 +354,11 @@ export default function ProfileEditForm({
       onFinish={onSubmit}
       initialValues={initialValues}
       className={useCards ? 'space-y-6' : 'space-y-5'}
+      // preserve=false so field state is cleared when the form unmounts (e.g. modal close).
       preserve={false}
       id={formId}
     >
+      {/* 'page' variant wraps each section in a glass card; 'modal' renders flat */}
       {useCards ? (
         <>
           <GlassCard className="p-5 md:p-6 space-y-4">{dataSection}</GlassCard>
@@ -334,7 +372,7 @@ export default function ProfileEditForm({
       )}
 
       {!hideFooter && (
-        <div className={useCards ? 'flex justify-end gap-2 sticky bottom-4' : 'flex justify-end gap-2 pt-2'}>
+        <div className="flex justify-end gap-2 pt-2">
           <Button htmlType="button" onClick={onCancel}>
             {t('common.cancel')}
           </Button>
