@@ -20,7 +20,7 @@ import { useT } from '@/lib/i18n/provider'; // hook fungsi terjemahan string ses
 type FormValues = {
   dateRange: [Dayjs, Dayjs]; // rentang tanggal cuti: [tanggal mulai, tanggal selesai]
   leaveType: LeaveType; // jenis cuti (ANNUAL, SICK, PERSONAL, dll.)
-  reason: string; // alasan cuti (min 5 karakter)
+  reason?: string; // alasan cuti (opsional)
   attachmentUrl?: string; // URL lampiran opsional (misal: surat dokter untuk cuti sakit)
 };
 
@@ -158,17 +158,12 @@ export default function LeaveForm() {
         />
       </Form.Item>
 
-      {/* Field: alasan cuti (min 5 karakter, max 1000 karakter) */}
+      {/* Field: alasan cuti (opsional, max 1000 karakter) */}
       <Form.Item
-        label={t('leave.labelReason')} // label: "Alasan Cuti"
+        label={t('leave.labelReason')}
         name="reason"
-        rules={[
-          { required: true, message: t('leave.reasonRequired') }, // wajib diisi
-          { min: 5, message: t('leave.reasonMin') }, // minimal 5 karakter
-          { max: 1000, message: t('leave.reasonMax') }, // maksimal 1000 karakter
-        ]}
+        rules={[{ max: 1000, message: t('leave.reasonMax') }]}
       >
-        {/* TextArea dengan counter karakter */}
         <Input.TextArea rows={4} placeholder={t('leave.reasonPlaceholder')} showCount maxLength={1000} />
       </Form.Item>
 

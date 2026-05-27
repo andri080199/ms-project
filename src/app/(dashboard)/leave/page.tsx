@@ -1,7 +1,7 @@
 'use client'; // tandai sebagai Client Component agar bisa pakai useState, useEffect, dll.
 
 // ─── Import komponen UI dari Ant Design ──────────────────────────────────────
-import { App, Button, Popconfirm, Tag } from 'antd';
+import { App, Button, Popconfirm, Tag, Tooltip } from 'antd';
 // App        → context global untuk message/notification
 // Button     → tombol UI
 // Popconfirm → dialog konfirmasi kecil sebelum aksi destruktif (batalkan)
@@ -26,7 +26,7 @@ import ColTitle from '@/components/ColTitle'; // judul kolom tabel dengan stylin
 import { formatDate } from '@/lib/utils'; // format tanggal ke string lokal (misal: "20 Mei 2026")
 import type { ColumnsType } from 'antd/es/table'; // tipe definisi kolom tabel AntD
 import type { LeaveRequest } from '@prisma/client'; // tipe model Prisma untuk data cuti
-import type { InboxItem, LeaveWithUser } from '@/lib/types'; // tipe gabungan untuk modal detail
+import { isSpecialLeave, type InboxItem, type LeaveWithUser } from '@/lib/types'; // tipe gabungan untuk modal detail
 import { useFormatters, useT } from '@/lib/i18n/provider';
 // useT          → fungsi terjemahan string sesuai bahasa aktif
 // useFormatters → fungsi format nilai (mis. pluralDays: "1 hari" / "3 hari")
@@ -140,11 +140,22 @@ export default function LeaveListPage() {
   const columns: ColumnsType<LeaveRequest> = useMemo(
     () => [
       {
-        // Kolom: jenis cuti (ANNUAL, SICK, dll.) ditampilkan sebagai tag berwarna cyan
+        // Kolom: jenis cuti — short label di tag, full label di tooltip.
+        // Tag warna magenta untuk Special Leave, cyan untuk cuti reguler.
+        // whiteSpace 'normal' biar label yg lebih panjang (mis. "Anggota Serumah Meninggal") wrap, gak terpotong.
         title: <ColTitle label={t('leave.colType')} />,
-        dataIndex: 'leaveType', // ambil nilai dari field leaveType di data
-        width: 150,
-        render: (v: string) => <Tag color="cyan">{t(`leaveType.${v}`)}</Tag>, // terjemahkan kode jenis cuti
+        dataIndex: 'leaveType',
+        width: 180,
+        render: (v: string) => (
+          <Tooltip title={t(`leaveType.${v}`)} mouseEnterDelay={0.3}>
+            <Tag
+              color={isSpecialLeave(v) ? 'magenta' : 'cyan'}
+              style={{ marginInlineEnd: 0, whiteSpace: 'normal', lineHeight: '1.4', maxWidth: '100%' }}
+            >
+              {t(`leaveTypeShort.${v}`)}
+            </Tag>
+          </Tooltip>
+        ),
       },
       {
         // Kolom: tanggal mulai dan selesai cuti, digabung dengan "—"
@@ -245,12 +256,12 @@ export default function LeaveListPage() {
         // ── Tampilan mobile (card list, bukan tabel) ──────────────────────────
         mobileRender={(r) => (
           <div>
-            {/* Baris pertama: jenis cuti (tag) + status badge */}
+            {/* Baris pertama: jenis cuti (tag, warna beda untuk special leave) + status badge */}
             <div className="flex items-center justify-between gap-2">
-              <Tag color="cyan" style={{ margin: 0 }}>
-                {t(`leaveType.${r.leaveType}`)} {/* terjemahkan kode jenis cuti */}
+              <Tag color={isSpecialLeave(r.leaveType) ? 'magenta' : 'cyan'} style={{ margin: 0, whiteSpace: 'normal' }}>
+                {t(`leaveType.${r.leaveType}`)}
               </Tag>
-              <StatusBadge status={r.status} /> {/* badge status */}
+              <StatusBadge status={r.status} />
             </div>
 
             {/* Rentang tanggal cuti */}

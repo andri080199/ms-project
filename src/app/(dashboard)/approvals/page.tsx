@@ -746,7 +746,7 @@ function renderDetail(
   return (
     <div className="space-y-0.5 min-w-0">
       <div className="text-sm">
-        {t(`leaveType.${item.data.leaveType}`)} · {formatDate(item.data.startDate)} —{' '}
+        {t(`leaveTypeShort.${item.data.leaveType}`)} · {formatDate(item.data.startDate)} —{' '}
         {formatDate(item.data.endDate)}
         <span className="text-muted"> · {pluralDays(item.data.totalDays)}</span>
       </div>

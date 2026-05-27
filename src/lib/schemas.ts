@@ -114,7 +114,7 @@ export const leaveSchema = z
       'MISCARRIAGE',
       'HAJJ',
     ]), // jenis cuti
-    reason: z.string().min(5, 'Alasan minimal 5 karakter').max(1000), // alasan cuti
+    reason: z.string().max(1000, 'Alasan maksimal 1000 karakter').optional(), // alasan cuti (opsional)
     attachmentUrl: z.string().max(500).optional().nullable().or(z.literal('').transform(() => undefined)), // URL lampiran opsional
   })
   .superRefine((val, ctx) => {

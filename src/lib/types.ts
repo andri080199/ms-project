@@ -91,6 +91,21 @@ export const LEAVE_TYPE_LABEL: Record<string, string> = {
   HAJJ: 'Cuti Ibadah Haji (Special Leave)',
 };
 
+export const SPECIAL_LEAVE_TYPES = new Set<string>([
+  'MARRIAGE',
+  'CHILD_MARRIAGE',
+  'CHILD_CIRCUMCISION',
+  'CHILD_BAPTISM',
+  'FAMILY_DEATH',
+  'HOUSEHOLD_DEATH',
+  'MATERNITY',
+  'MENSTRUAL',
+  'MISCARRIAGE',
+  'HAJJ',
+]);
+
+export const isSpecialLeave = (leaveType: string): boolean => SPECIAL_LEAVE_TYPES.has(leaveType);
+
 // Label dalam Bahasa Indonesia untuk setiap RequestStatus.
 // SPV_APPROVED dan HR_APPROVED keduanya ditampilkan sebagai "Menunggu" ke pengaju
 // karena proses persetujuan belum selesai sepenuhnya.

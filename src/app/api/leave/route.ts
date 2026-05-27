@@ -56,7 +56,7 @@ export async function POST(req: Request) {
         endDate: end,
         totalDays,
         leaveType,
-        reason,
+        reason: reason ?? '',
         attachmentUrl: attachmentUrl ?? null,
         status: 'SUBMITTED',
       },
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
           `Jenis: ${LEAVE_TYPE_LABEL[created.leaveType] ?? created.leaveType}`,
           `Tanggal: ${formatDate(created.startDate)} — ${formatDate(created.endDate)}`,
           `Total Hari: ${created.totalDays} hari`,
-          `Alasan: ${created.reason}`,
+          ...(created.reason ? [`Alasan: ${created.reason}`] : []),
         ],
       });
     }
