@@ -76,12 +76,19 @@ export type InboxItem =
 // Label dalam Bahasa Indonesia untuk setiap jenis cuti.
 // Dipakai sebagai fallback saat terjemahan tidak tersedia.
 export const LEAVE_TYPE_LABEL: Record<string, string> = {
-  ANNUAL: 'Cuti Tahunan', // cuti tahunan yang menjadi hak karyawan
-  SICK: 'Sakit', // cuti karena sakit
-  PERSONAL: 'Pribadi', // keperluan pribadi
-  MATERNITY: 'Melahirkan', // cuti melahirkan
-  UNPAID: 'Cuti Tanpa Bayar', // cuti tanpa dibayar
-  OTHER: 'Lainnya', // alasan lain di luar kategori di atas
+  ANNUAL: 'Cuti Tahunan',
+  SICK: 'Sakit',
+  PERSONAL: 'Izin',
+  MARRIAGE: 'Cuti Menikah (Special Leave)',
+  CHILD_MARRIAGE: 'Cuti Menikahkan Anak (Special Leave)',
+  CHILD_CIRCUMCISION: 'Cuti Khitanan Anak (Special Leave)',
+  CHILD_BAPTISM: 'Cuti Baptis Anak (Special Leave)',
+  FAMILY_DEATH: 'Cuti Keluarga Meninggal (Special Leave)',
+  HOUSEHOLD_DEATH: 'Cuti Anggota Keluarga Dalam Satu Rumah Meninggal (Special Leave)',
+  MATERNITY: 'Cuti Melahirkan (Special Leave)',
+  MENSTRUAL: 'Cuti Haid (Special Leave)',
+  MISCARRIAGE: 'Cuti Keguguran (Special Leave)',
+  HAJJ: 'Cuti Ibadah Haji (Special Leave)',
 };
 
 // Label dalam Bahasa Indonesia untuk setiap RequestStatus.

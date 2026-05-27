@@ -5,8 +5,9 @@
 // business-trip/leave). History tab supports client-side filtering by kind, status, and date range
 // plus CSV export. Both tabs open the ApprovalModal on row click.
 
-import { Button, DatePicker, Dropdown, Empty, Segmented, Skeleton, Table, Tabs } from 'antd';
+import { Button, DatePicker, Dropdown, Empty, Pagination, Segmented, Skeleton, Table, Tabs } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import RangePickerWithIndicator from '@/components/RangePickerWithIndicator';
 import {
   ClockCircleOutlined,
   WalletOutlined,
@@ -18,7 +19,6 @@ import {
 import dayjs, { type Dayjs } from 'dayjs';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
-const { RangePicker } = DatePicker;
 import PageHeader, { PageTitle } from '@/components/PageHeader';
 import ColTitle from '@/components/ColTitle';
 import StatusBadge from '@/components/StatusBadge';
@@ -107,6 +107,7 @@ export default function ApprovalsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [periodRange, setPeriodRange] = useState<DateRange>(null);
   const [historyPage, setHistoryPage] = useState(1);
+  const [pendingPage, setPendingPage] = useState(1);
   const [scrollEl, setScrollEl] = useState<HTMLElement | null>(null);
   const t = useT();
   const { minutesToReadable, pluralDays } = useFormatters();
@@ -141,6 +142,9 @@ export default function ApprovalsPage() {
   useEffect(() => {
     setHistoryPage(1);
   }, [kindFilter, statusFilter, periodRange, tab]);
+  useEffect(() => {
+    setPendingPage(1);
+  }, [tab]);
 
   const pendingRows: PendingTableRow[] = useMemo(() => {
     if (!pending) return [];
@@ -203,6 +207,16 @@ export default function ApprovalsPage() {
     return rows;
   }, [history, kindFilter, statusFilter, periodRange]);
 
+  // Sliced rows untuk mobile cards (desktop pagination ditangani Table sendiri)
+  const pendingRowsSliced = useMemo(
+    () => pendingRows.slice((pendingPage - 1) * PAGE_SIZE, pendingPage * PAGE_SIZE),
+    [pendingRows, pendingPage],
+  );
+  const historyRowsSliced = useMemo(
+    () => historyRows.slice((historyPage - 1) * PAGE_SIZE, historyPage * PAGE_SIZE),
+    [historyRows, historyPage],
+  );
+
   function handleDownloadCsv() {
     if (!periodRange || !periodRange[0] || !periodRange[1]) return;
     if (historyRows.length === 0) return;
@@ -216,12 +230,18 @@ export default function ApprovalsPage() {
       t('approvals.colComment'),
     ];
     const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const statusLabel = (s: string) =>
+      s === 'DONE'
+        ? t('approvals.filterApproved')
+        : s === 'REJECTED'
+        ? t('approvals.filterRejected')
+        : s;
     const lines = historyRows.map((r) => {
       const cells = [
         t(KIND_META[r.item.kind].labelKey),
         r.item.data.user.name,
         r.item.data.user.department ?? '',
-        r.item.data.status,
+        statusLabel(r.item.data.status),
         formatDateTime(r.h.createdAt),
         buildDetailText(r.item, t, minutesToReadable, pluralDays),
         r.h.comment ?? '',
@@ -392,14 +412,11 @@ export default function ApprovalsPage() {
                 onChange={(v) => setStatusFilter(v)}
                 options={statusOptions}
               />
-              <RangePicker
-                value={periodRange as never}
+              <RangePickerWithIndicator
+                value={periodRange ?? undefined}
                 onChange={(v) => setPeriodRange(v as DateRange)}
                 format="DD MMM YYYY"
-                placeholder={[
-                  t('approvals.periodPlaceholderStart'),
-                  t('approvals.periodPlaceholderEnd'),
-                ]}
+                placeholder={[t('approvals.periodPlaceholderStart'), t('approvals.periodPlaceholderEnd')]}
                 allowClear
                 classNames={{ popup: { root: 'app-date-popup' } }}
                 className="approvals-period-picker"
@@ -416,7 +433,10 @@ export default function ApprovalsPage() {
               </Button>
               {counter}
             </div>
-            {/* Mobile: inline dropdown triggers + period range + download */}
+            {/* Mobile filter — disusun jadi:
+                Baris atas:  Type filter, Status filter, Download, records counter (push paling kanan)
+                Baris bawah: Period (start + end DatePickers full-width)
+                Period taro paling bawah biar tanggal start/end lega kelihatan. */}
             <div className="approvals-filters-mobile">
               <div className="filter-field">
                 <span className="filter-field-label">{t('approvals.filterTypeLabel')}</span>
@@ -452,19 +472,6 @@ export default function ApprovalsPage() {
                   </button>
                 </Dropdown>
               </div>
-              <div className="filter-field filter-field-period">
-                <span className="filter-field-label">{t('approvals.filterPeriodLabel')}</span>
-                <RangePicker
-                  value={periodRange as never}
-                  onChange={(v) => setPeriodRange(v as DateRange)}
-                  format="DD/MM"
-                  placeholder={['start', 'end']}
-                  allowClear
-                  size="small"
-                  inputReadOnly
-                  classNames={{ popup: { root: 'app-date-popup approvals-period-popup-mobile' } }}
-                />
-              </div>
               <Button
                 type="primary"
                 size="small"
@@ -476,6 +483,35 @@ export default function ApprovalsPage() {
                 {downloadLabel}
               </Button>
               {counter}
+              <div className="filter-field filter-field-period">
+                <span className="filter-field-label">{t('approvals.filterPeriodLabel')}</span>
+                {/* Mobile pakai dua DatePicker terpisah biar 1 tap = 1 pilihan
+                    (RangePicker bawaan AntD butuh 2 tap di touch device).
+                    Full-width supaya tanggal kelihatan jelas. */}
+                <div className="filter-period-fields-mobile">
+                  <DatePicker
+                    value={periodRange?.[0] ?? null}
+                    onChange={(v) => setPeriodRange([v, periodRange?.[1] ?? null])}
+                    format="DD MMM YYYY"
+                    placeholder={t('approvals.periodPlaceholderStart')}
+                    allowClear
+                    size="small"
+                    inputReadOnly
+                    classNames={{ popup: { root: 'app-date-popup' } }}
+                  />
+                  <DatePicker
+                    value={periodRange?.[1] ?? null}
+                    onChange={(v) => setPeriodRange([periodRange?.[0] ?? null, v])}
+                    format="DD MMM YYYY"
+                    placeholder={t('approvals.periodPlaceholderEnd')}
+                    allowClear
+                    size="small"
+                    inputReadOnly
+                    disabledDate={(c) => !!periodRange?.[0] && c.isBefore(periodRange[0]!, 'day')}
+                    classNames={{ popup: { root: 'app-date-popup' } }}
+                  />
+                </div>
+              </div>
             </div>
           </>
         );
@@ -503,7 +539,12 @@ export default function ApprovalsPage() {
                 columns={pendingColumns}
                 rowKey="rowKey"
                 size="middle"
-                pagination={{ pageSize: 10, showSizeChanger: false }}
+                pagination={{
+                  pageSize: PAGE_SIZE,
+                  current: pendingPage,
+                  showSizeChanger: false,
+                  onChange: (p) => setPendingPage(p),
+                }}
                 scroll={{ x: 760 }}
                 sticky={scrollEl ? { offsetHeader: 0, getContainer: () => scrollEl } : false}
                 onRow={(r) => ({
@@ -513,7 +554,7 @@ export default function ApprovalsPage() {
               />
             </div>
             <div className="approvals-cards-mobile glass">
-              {pendingRows.map((r) => (
+              {pendingRowsSliced.map((r) => (
                 <button
                   key={r.rowKey}
                   type="button"
@@ -535,6 +576,19 @@ export default function ApprovalsPage() {
                   </div>
                 </button>
               ))}
+              {pendingRows.length > PAGE_SIZE && (
+                <div className="approvals-mobile-pagination">
+                  <Pagination
+                    current={pendingPage}
+                    pageSize={PAGE_SIZE}
+                    total={pendingRows.length}
+                    onChange={(p) => setPendingPage(p)}
+                    showSizeChanger={false}
+                    size="small"
+                    simple
+                  />
+                </div>
+              )}
             </div>
           </>
         )
@@ -572,7 +626,7 @@ export default function ApprovalsPage() {
             />
           </div>
           <div className="approvals-cards-mobile glass">
-            {historyRows.map((r) => (
+            {historyRowsSliced.map((r) => (
               <button
                 key={r.rowKey}
                 type="button"
@@ -598,6 +652,19 @@ export default function ApprovalsPage() {
                 )}
               </button>
             ))}
+            {historyRows.length > PAGE_SIZE && (
+              <div className="approvals-mobile-pagination">
+                <Pagination
+                  current={historyPage}
+                  pageSize={PAGE_SIZE}
+                  total={historyRows.length}
+                  onChange={(p) => setHistoryPage(p)}
+                  showSizeChanger={false}
+                  size="small"
+                  simple
+                />
+              </div>
+            )}
           </div>
         </>
       )}

@@ -2,6 +2,9 @@
 
 // Required AntD patch for React 19 compatibility — must be imported before any AntD components.
 import '@ant-design/v5-patch-for-react-19';
+// Side-effect import: install global fetch interceptor yang auto-redirect ke /login
+// kalau API balikin 401 (session expired). Wajib di-import paling atas client tree.
+import '@/lib/fetch-interceptor';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { ConfigProvider, App as AntApp, theme } from 'antd';
 import { SessionProvider } from 'next-auth/react';

@@ -99,7 +99,21 @@ export const leaveSchema = z
   .object({
     startDate: z.string().min(1, 'Tanggal mulai wajib diisi'), // tanggal mulai cuti sebagai ISO string
     endDate: z.string().min(1, 'Tanggal selesai wajib diisi'), // tanggal selesai cuti sebagai ISO string
-    leaveType: z.enum(['ANNUAL', 'SICK', 'PERSONAL', 'MATERNITY', 'UNPAID', 'OTHER']), // jenis cuti
+    leaveType: z.enum([
+      'ANNUAL',
+      'SICK',
+      'PERSONAL',
+      'MARRIAGE',
+      'CHILD_MARRIAGE',
+      'CHILD_CIRCUMCISION',
+      'CHILD_BAPTISM',
+      'FAMILY_DEATH',
+      'HOUSEHOLD_DEATH',
+      'MATERNITY',
+      'MENSTRUAL',
+      'MISCARRIAGE',
+      'HAJJ',
+    ]), // jenis cuti
     reason: z.string().min(5, 'Alasan minimal 5 karakter').max(1000), // alasan cuti
     attachmentUrl: z.string().max(500).optional().nullable().or(z.literal('').transform(() => undefined)), // URL lampiran opsional
   })

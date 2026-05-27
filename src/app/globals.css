@@ -113,6 +113,39 @@ body {
   z-index: 0;
 }
 
+/* Mobile-only flat background. Stripping the body background-image (linear
+   + radial gradients) and the .aurora-bg blur blobs leaves the body's solid
+   background-color (#EEEDF2 via --color-bg-base) as the only rendered hue.
+   This way the iOS Safari URL bar + home indicator strip (themeColor
+   #EEEDF2) blends seamlessly with the body — no lavender tint mismatch.
+   Desktop (md+) keeps the original gradient + aurora visual design. */
+@media (max-width: 767px) {
+  body {
+    background-image: none;
+  }
+  .aurora-bg {
+    display: none;
+  }
+
+  /* iOS Safari auto-zooms on focus when an input's effective font-size is
+     < 16px. AntD defaults to 14px (only size="large" uses 16px), so most
+     forms trigger the zoom. Force 16px on every form control element
+     across native HTML + AntD wrappers to neutralize it without disabling
+     user pinch-zoom (maximum-scale=1 would do the same but kills a11y). */
+  input,
+  select,
+  textarea,
+  .ant-input,
+  .ant-input-affix-wrapper > input.ant-input,
+  .ant-input-number-input,
+  .ant-picker-input > input,
+  .ant-select-selection-search-input,
+  .ant-select-selection-item,
+  .ant-select-selection-placeholder {
+    font-size: 16px !important;
+  }
+}
+
 /* Table card — the .glass wrapper would bleed a rectangular bg behind the
    sticky thead's rounded corners while scrolling. Strip its surface styling
    and move the dark frosted look onto the inner table elements so the
@@ -1025,6 +1058,8 @@ body {
    denser, table-like layout. Rows stacked flush with hairline dividers. */
 .approvals-table-desktop {
   display: block;
+  margin-left: -8px;
+  margin-right: -8px;
 }
 .approvals-cards-mobile {
   display: none;
@@ -1038,9 +1073,17 @@ body {
     flex-direction: column;
     padding: 0;
     overflow: hidden;
-    margin-left: -12px;
-    margin-right: -12px;
+    margin-left: -4px;
+    margin-right: -4px;
   }
+}
+
+/* Mobile pagination — centered di bawah list cards */
+.approvals-mobile-pagination {
+  display: flex;
+  justify-content: center;
+  padding: 12px 8px;
+  border-top: 1px solid rgb(255 255 255 / 0.08);
 }
 
 .approval-card {
@@ -1144,13 +1187,16 @@ body {
   }
 }
 
-/* Mobile layout — bare pills, mepet ke atas (negative margin) */
+/* Mobile layout — bare pills, mepet ke atas (negative margin).
+   position:relative + padding-right kasih ruang counter yang absolute di pojok kanan atas. */
 .approvals-filters-mobile {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 10px;
   margin-top: -10px;
+  padding-right: 84px;
 }
 @media (min-width: 768px) {
   .approvals-filters-mobile {
@@ -1212,26 +1258,43 @@ body {
   border-color: rgb(var(--color-primary-300) / 0.6) !important;
 }
 
-/* Mobile period field — inline, compact RangePicker */
+/* Mobile period field — taro paling bawah, full-width supaya tanggal lega kelihatan */
+.approvals-filters-mobile .filter-field-period {
+  width: 100%;
+  flex-basis: 100%;
+}
+/* Mobile period — dua DatePicker terpisah, side-by-side, full row */
+.approvals-filters-mobile .filter-period-fields-mobile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.approvals-filters-mobile .filter-period-fields-mobile .ant-picker {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Mobile period field — inline DatePicker, full "DD MMM YYYY" muat nyaman */
 .approvals-filters-mobile .filter-field-period .ant-picker {
   background: rgb(var(--glass-tint)) !important;
   border: 1px solid rgb(255 255 255 / 0.14) !important;
   border-radius: 9999px !important;
-  padding: 3px 8px !important;
-  min-height: 28px;
+  padding: 4px 12px !important;
+  min-height: 32px;
   width: auto;
 }
 .approvals-filters-mobile .filter-field-period .ant-picker .ant-picker-input > input {
   color: #fff !important;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
-  width: 34px;
+  width: 100%;
   text-align: center;
 }
 .approvals-filters-mobile .filter-field-period .ant-picker .ant-picker-suffix {
   color: rgb(255 255 255 / 0.8) !important;
-  font-size: 10px;
-  margin-inline-start: 4px;
+  font-size: 12px;
+  margin-inline-start: 6px;
 }
 .approvals-filters-mobile .filter-field-period .ant-picker .ant-picker-clear {
   color: rgb(var(--color-primary-900)) !important;
@@ -1283,12 +1346,13 @@ body {
   border-radius: 9999px !important;
   align-self: flex-end;
 }
-/* Mobile: records sebagai text plain, sejajar dengan label "Jenis"/"Keputusan".
-   align-self: flex-start menempelkannya ke baris atas (level label),
-   sehingga lebar pill yang berubah tidak menggesernya. */
+/* Mobile: records counter di-pin ke pojok kanan atas via absolute positioning,
+   biar gak ikut wrap ke bawah Download button kalau Type/Status panjang. */
 .approvals-filters-mobile .approvals-filter-counter {
-  margin-left: auto;
-  align-self: flex-start;
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin: 0;
   background: transparent;
   border: none;
   box-shadow: none;
@@ -1551,12 +1615,167 @@ body {
   display: none !important;
 }
 
+/* Clear (X) icons across form controls — default AntD opacity (~0.45 black)
+ * disappears against the white input bg on the light body. Force a deep
+ * violet so it's always visible. Scoped to inputs on the light canvas; the
+ * dark .glass / .ant-modal variants already render fine. */
+.ant-picker-clear,
+.ant-picker-clear .anticon,
+.ant-select-clear,
+.ant-select-clear .anticon,
+.ant-input-clear-icon,
+.ant-input-clear-icon .anticon,
+.ant-input-number-clear-icon,
+.ant-input-number-clear-icon .anticon {
+  color: rgb(var(--color-primary-900)) !important;
+  opacity: 1 !important;
+}
+.ant-picker-clear:hover,
+.ant-select-clear:hover,
+.ant-input-clear-icon:hover,
+.ant-input-number-clear-icon:hover {
+  color: rgb(var(--color-danger)) !important;
+}
+/* The clear button sits on top of the suffix — give it a matching bg so the
+ * underlying calendar/clock icon doesn't bleed through during fade-in. */
+.ant-picker .ant-picker-clear {
+  background: rgb(255 255 255) !important;
+}
+.glass .ant-picker .ant-picker-clear,
+.ant-modal .ant-picker .ant-picker-clear,
+.ant-drawer-content .ant-picker .ant-picker-clear {
+  background: transparent !important;
+  color: rgb(var(--color-text-primary)) !important;
+}
+
 /* Single-month view for RangePicker — hide the right panel */
 .app-date-popup.single-month-panel .ant-picker-panels > *:nth-child(n + 2) {
   display: none !important;
 }
 .app-date-popup.single-month-panel .ant-picker-panels {
   width: auto !important;
+}
+
+/* ─── RangePicker progress indicator ──────────────────────────────────────
+ * AntD RangePicker butuh 2 tap di mobile karena touch device emulate hover
+ * dulu. Buat ngasih clue ke user soal state pemilihan, kita warnai:
+ *   - Border RangePicker jadi warning kalau start sudah dipilih tapi end
+ *     belum (picker masih open / focused-within).
+ *   - Active-bar di bawah input aktif dibuat lebih tebal & menyolok.
+ *   - Placeholder input end di-bold + warning saat start sudah terisi.
+ * Pakai :has() + :placeholder-shown — modern browser only (Chrome 105+,
+ * Safari 15.4+, Firefox 121+). */
+.ant-picker.ant-picker-range:focus-within:has(.ant-picker-input:first-of-type input:not(:placeholder-shown)):has(.ant-picker-input + .ant-picker-range-separator + .ant-picker-input input:placeholder-shown) {
+  border-color: rgb(var(--color-warning)) !important;
+  box-shadow: 0 0 0 3px rgb(var(--color-warning) / 0.22) !important;
+}
+/* Filled start input — tampilkan lebih bold biar user sadar tanggal sudah ke-set */
+.ant-picker.ant-picker-range .ant-picker-input:first-of-type input:not(:placeholder-shown) {
+  color: rgb(var(--color-primary-900)) !important;
+  font-weight: 700;
+}
+/* Placeholder end input saat start filled — kasih hint warning */
+.ant-picker.ant-picker-range:has(.ant-picker-input:first-of-type input:not(:placeholder-shown))
+  .ant-picker-input
+  + .ant-picker-range-separator
+  + .ant-picker-input
+  input::placeholder {
+  color: rgb(var(--color-warning)) !important;
+  opacity: 1 !important;
+  font-weight: 700;
+}
+/* Active-bar lebih tebal & menyolok */
+.ant-picker.ant-picker-range .ant-picker-active-bar {
+  background: rgb(var(--color-warning)) !important;
+  height: 3px !important;
+  margin-top: 0 !important;
+  bottom: -1px;
+}
+/* Separator "~" jadi warning saat in-progress (mempertegas hint) */
+.ant-picker.ant-picker-range:focus-within:has(.ant-picker-input:first-of-type input:not(:placeholder-shown)):has(.ant-picker-input + .ant-picker-range-separator + .ant-picker-input input:placeholder-shown)
+  .ant-picker-range-separator {
+  color: rgb(var(--color-warning)) !important;
+}
+/* Override untuk approvals-period-picker (text-nya putih di glass bg) — pakai
+ * warna primary terang biar tetap visible */
+.approvals-period-picker.ant-picker-range .ant-picker-input:first-of-type input:not(:placeholder-shown) {
+  color: rgb(var(--color-primary-300)) !important;
+}
+
+/* ─── Calendar cell highlight: range complete ────────────────────────────
+ * Saat range sudah lengkap (start + end ke-pick keduanya), AntD pakai class
+ * .ant-picker-cell-range-start / -end / -in-range. Pakai warna primary
+ * (deep violet) yang match dengan tombol submit aplikasi. */
+.ant-picker-dropdown:has(.ant-picker-panels) .ant-picker-cell-range-start .ant-picker-cell-inner,
+.ant-picker-dropdown:has(.ant-picker-panels) .ant-picker-cell-range-end .ant-picker-cell-inner {
+  background: rgb(var(--color-primary-900)) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+  box-shadow:
+    0 0 0 2px rgb(var(--color-primary-900) / 0.35),
+    0 6px 14px -4px rgb(var(--color-primary-900) / 0.7) !important;
+}
+.ant-picker-dropdown:has(.ant-picker-panels) .ant-picker-cell-in-range::before {
+  background: rgb(var(--color-primary-900) / 0.16) !important;
+}
+.ant-picker-dropdown:has(.ant-picker-panels) .ant-picker-cell-in-range .ant-picker-cell-inner {
+  color: rgb(var(--color-primary-300)) !important;
+  font-weight: 600 !important;
+}
+
+/* ─── Partial selection (start dipilih, end masih nunggu) ────────────────
+ * AntD default GAK menandai cell start sampai end juga ke-pick. Kita track
+ * via JS di RangePickerWithIndicator wrapper, lalu cellRender nge-tambahin
+ * class .rp-partial-start ke .ant-picker-cell-inner pas user baru klik
+ * tanggal pertama. Style super menonjol + pulse biar user langsung paham:
+ *   "oh, tanggal start udah ke-set, tinggal pilih tanggal selesai".
+ */
+@keyframes rp-partial-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px rgb(var(--color-primary-900) / 0.35),
+      0 6px 14px -4px rgb(var(--color-primary-900) / 0.7);
+  }
+  50% {
+    box-shadow:
+      0 0 0 7px rgb(var(--color-primary-900) / 0.18),
+      0 8px 18px -2px rgb(var(--color-primary-900) / 0.9);
+  }
+}
+.ant-picker-cell-inner.rp-partial-start,
+.ant-picker-cell-inner.rp-partial-end {
+  background: rgb(var(--color-primary-900)) !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+  border-radius: 8px !important;
+  animation: rp-partial-pulse 1.4s ease-in-out infinite;
+}
+
+/* Banner "Pilih tanggal selesai" di atas popup saat ada partial selection.
+ * Class .rp-has-partial di-attach ke popup root oleh wrapper component. */
+.ant-picker-dropdown.rp-has-partial {
+  padding-top: 30px;
+}
+.ant-picker-dropdown.rp-has-partial::before {
+  content: 'Pilih tanggal selesai →';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: rgb(var(--color-warning));
+  padding: 5px 14px;
+  border-radius: 9999px;
+  box-shadow: 0 4px 12px -2px rgb(var(--color-warning) / 0.6);
+  white-space: nowrap;
+  z-index: 1;
+}
+:root[lang='en'] .ant-picker-dropdown.rp-has-partial::before {
+  content: 'Pick end date →';
 }
 
 @media (max-width: 767px) {
@@ -1568,6 +1787,93 @@ body {
     bottom: auto !important;
     transform: translate(-50%, -50%) !important;
   }
+
+  /* TimePicker popup on mobile — bikin panel-nya lebih lebar biar lega di
+   * layar HP. Posisi di-center fixed kayak date popup, panel + kolom auto
+   * stretch ke lebar baru. Tinggi cell sedikit lebih jangkung biar tap
+   * target jempol gampang. overscroll-behavior: contain stop body scroll
+   * pas kolom udah mentok atas/bawah. */
+  .ant-picker-dropdown:has(.ant-picker-time-panel) {
+    position: fixed !important;
+    left: 50% !important;
+    top: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) !important;
+  }
+  .ant-picker-dropdown .ant-picker-panel-container:has(.ant-picker-time-panel),
+  .ant-picker-dropdown .ant-picker-panel:has(.ant-picker-time-panel),
+  .ant-picker-dropdown .ant-picker-time-panel {
+    width: 88vw !important;
+    max-width: 360px !important;
+  }
+  /* Kolom di-flex stretch biar bagi rata lebar panel baru */
+  .ant-picker-dropdown .ant-picker-time-panel .ant-picker-content {
+    width: 100% !important;
+  }
+  .ant-picker-dropdown .ant-picker-time-panel-column {
+    flex: 1 1 0 !important;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    scrollbar-width: thin;
+    /* iOS momentum scrolling — gesture jempol jadi inertia-friendly,
+     * gak berhenti mati pas lepas jari */
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  .ant-picker-dropdown .ant-picker-time-panel-column .ant-picker-time-panel-cell {
+    /* Cell jadi snap target — flick scroll bakal pas mentok di angka,
+     * gak ngambang setengah baris */
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+  }
+  .ant-picker-dropdown .ant-picker-time-panel-column .ant-picker-time-panel-cell-inner {
+    height: 36px !important;
+    line-height: 36px !important;
+    font-size: 15px;
+  }
+}
+
+/* TimePicker angka rata tengah di semua ukuran layar (desktop & mobile).
+ *
+ * AntD default render cell-inner sbg block dengan:
+ *   - width = calc(timeColumnWidth - marginXXS*2)  → cuma 48px dari kolom 56px
+ *   - marginInline: marginXXS                       → 4px gap kiri+kanan
+ *   - paddingInlineStart: (timeColumnWidth - timeCellHeight) / 2  → 14px
+ *
+ * Akibatnya text-align: center aja gak cukup — box cell-inner-nya sendiri
+ * cuma nempel di sisi kiri kolom (48px dari 56px). Solusinya: width:100%,
+ * margin 0, padding 0, terus flex center supaya angka bener-bener nyentil
+ * tengah kolom. */
+.ant-picker-dropdown .ant-picker-time-panel-column > li.ant-picker-time-panel-cell {
+  padding: 0 !important;
+  margin-inline: 0 !important;
+}
+.ant-picker-dropdown .ant-picker-time-panel-column > li.ant-picker-time-panel-cell .ant-picker-time-panel-cell-inner {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  margin-inline: 0 !important;
+  padding-inline: 0 !important;
+  text-align: center !important;
+}
+
+/* Backdrop scroll lock — pas dropdown lagi nongol (AntD auto-pasang
+ * .ant-picker-dropdown / .ant-select-dropdown / .ant-dropdown). AntD Modal
+ * udah lock body sendiri via scrollLocker, jadi gak perlu di-handle disini.
+ * Pakai :has() biar otomatis trigger pas dropdown muncul di DOM. html & body
+ * sama-sama di-lock biar iOS Safari gak rebound chain ke document scroll. */
+html:has(.ant-picker-dropdown:not(.ant-picker-dropdown-hidden)),
+html:has(.ant-select-dropdown:not(.ant-select-dropdown-hidden)),
+html:has(.ant-dropdown:not(.ant-dropdown-hidden)),
+body:has(.ant-picker-dropdown:not(.ant-picker-dropdown-hidden)),
+body:has(.ant-select-dropdown:not(.ant-select-dropdown-hidden)),
+body:has(.ant-dropdown:not(.ant-dropdown-hidden)) {
+  overflow: hidden !important;
+  /* Lock id mobile-only — di desktop body biasanya udah gak scrollable
+   * (#page-scroll yang scroll), tapi html-level lock gak hurt */
+  overscroll-behavior: none;
 }
 
 /* Sidebar submenu (Request group) — when a child route is active, keep parent text

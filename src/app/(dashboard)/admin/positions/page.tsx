@@ -162,21 +162,33 @@ export default function PositionsPage() {
                     <Button icon={<EditOutlined />} onClick={() => openEdit(p)}>
                       {t('common.edit')}
                     </Button>
-                    <Popconfirm
-                      title={t('adminPositions.deleteConfirmTitle')}
-                      description={t('adminPositions.deleteConfirmDesc')}
-                      okText={t('common.delete')}
-                      cancelText={t('common.cancel')}
-                      okButtonProps={{ danger: true }}
-                      disabled={inUse}
-                      onConfirm={() => onDelete(p)}
-                    >
-                      <Tooltip title={inUse ? t('adminPositions.inUseTooltip') : ''}>
-                        <Button danger icon={<DeleteOutlined />} disabled={inUse}>
+                    {inUse ? (
+                      // Tombol gak di-disable supaya tap mobile tetap memunculkan warning
+                      // (disabled button gak fire onClick di touch device → user gak dapat feedback).
+                      <Tooltip title={t('adminPositions.inUseTooltip')}>
+                        <Button
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={() => message.warning(t('adminPositions.inUseTooltip'))}
+                          style={{ opacity: 0.6 }}
+                        >
                           {t('common.delete')}
                         </Button>
                       </Tooltip>
-                    </Popconfirm>
+                    ) : (
+                      <Popconfirm
+                        title={t('adminPositions.deleteConfirmTitle')}
+                        description={t('adminPositions.deleteConfirmDesc')}
+                        okText={t('common.delete')}
+                        cancelText={t('common.cancel')}
+                        okButtonProps={{ danger: true }}
+                        onConfirm={() => onDelete(p)}
+                      >
+                        <Button danger icon={<DeleteOutlined />}>
+                          {t('common.delete')}
+                        </Button>
+                      </Popconfirm>
+                    )}
                   </div>
                 </div>
               </GlassCard>

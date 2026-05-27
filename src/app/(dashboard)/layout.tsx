@@ -5,24 +5,29 @@ import Sidebar from '@/components/Sidebar';
 import MobileBottomNav from '@/components/MobileBottomNav';
 
 // Dashboard shell layout shared by all authenticated pages.
-// Structure:
-//   <aside>  Sidebar — desktop-only, fixed on the left
-//   <main>
-//     #page-header-slot — portal target for PageHeader injections (title, breadcrumbs, tabs)
-//     #page-scroll      — scrollable content area; passed to sticky AntD table headers
-//   <MobileBottomNav>  — fixed bottom bar on mobile
+//
+// Desktop (md+): app-shell pattern — sidebar fixed left, main column with
+// its own internal scroll on #page-scroll. Sticky AntD table headers anchor
+// to that container via getContainer.
+//
+// Mobile (< md): document/body scrolls instead so iOS Safari can collapse
+// its URL bar + bottom toolbar (Safari only collapses on window scroll, not
+// internal element scroll). Outer wrapper drops h-screen + overflow-hidden
+// chain; #page-scroll degrades to a plain block. All sticky AntD tables are
+// hidden below md (replaced by card lists), so detaching the scroll
+// container on mobile is safe.
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="relative z-10 h-screen flex overflow-hidden">
+    <div className="relative z-10 md:h-screen md:flex md:overflow-hidden">
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <main className="flex-1 flex flex-col overflow-hidden">
+      <div className="md:flex-1 md:flex md:flex-col md:min-w-0 md:overflow-hidden">
+        <main className="md:flex-1 md:flex md:flex-col md:overflow-hidden">
           {/* Empty slot filled by PageHeader portals in individual pages */}
-          <div id="page-header-slot" className="px-2 md:px-4 pt-4 md:pt-6 pb-3 md:pb-4 shrink-0" />
+          <div id="page-header-slot" className="px-2 md:px-4 pt-4 md:pt-6 pb-3 md:pb-4 md:shrink-0" />
           {/* pb-28 on mobile leaves room above the bottom nav bar */}
           <div
             id="page-scroll"
-            className="flex-1 overflow-y-auto px-2 md:px-4 pb-28 md:pb-8"
+            className="px-2 md:px-4 pb-28 md:pb-8 md:flex-1 md:overflow-y-auto"
           >
             <div className="page-enter">{children}</div>
           </div>

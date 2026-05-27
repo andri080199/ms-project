@@ -156,6 +156,7 @@ export default function ReimbursementForm() {
                       className="w-full" // lebar penuh
                       format="DD MMM YYYY" // format tampilan: "20 Mei 2026"
                       classNames={{ popup: { root: 'app-date-popup' } }} // styling popup kalender
+                      inputReadOnly // stop virtual keyboard di mobile — tanggal dipilih via popup
                     />
                   </Form.Item>
                 </div>

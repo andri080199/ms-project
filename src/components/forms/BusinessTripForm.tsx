@@ -1,19 +1,19 @@
 'use client'; // tandai sebagai Client Component agar bisa pakai useState, useEffect, dll.
 
 // ─── Import komponen UI dari Ant Design ──────────────────────────────────────
-import { App, Button, DatePicker, Form, Input, Select } from 'antd';
-// App        → context global untuk message/notification
-// Button     → tombol UI
-// DatePicker → date picker, termasuk RangePicker untuk memilih rentang tanggal
-// Form       → form dengan validasi bawaan AntD
-// Input      → input teks satu baris
-// Select     → dropdown pilihan
+import { App, Button, Form, Input, Select } from 'antd';
+// App     → context global untuk message/notification
+// Button  → tombol UI
+// Form    → form dengan validasi bawaan AntD
+// Input   → input teks satu baris
+// Select  → dropdown pilihan
 
 import { type Dayjs } from 'dayjs'; // tipe Dayjs untuk nilai date picker
 import { useRouter } from 'next/navigation'; // navigasi programatik (redirect setelah submit)
 import { useEffect, useMemo, useState } from 'react'; // hooks React dasar
 import { isWeekendRange } from '@/lib/utils'; // fungsi helper: cek apakah rentang tanggal mencakup hari weekend
 import UploadField from '@/components/UploadField'; // komponen upload file (unggah lampiran)
+import ResponsiveRangePicker from '@/components/ResponsiveRangePicker'; // Desktop: RangePicker dengan indikator partial. Mobile: dua DatePicker terpisah.
 import { useT } from '@/lib/i18n/provider'; // hook fungsi terjemahan string sesuai bahasa aktif
 
 // Tipe nilai form perjalanan dinas
@@ -118,15 +118,26 @@ export default function BusinessTripForm() {
     >
       {/* Field: rentang tanggal perjalanan */}
       <Form.Item
-        label={t('businessTrip.labelDates')} // label: "Tanggal Perjalanan"
-        name="range" // nama field dalam form values
-        rules={[{ required: true, message: t('businessTrip.datesRequired') }]} // wajib diisi
+        label={t('businessTrip.labelDates')} // label: "Rentang Tanggal"
+        name="range"
+        rules={[
+          { required: true, message: t('businessTrip.datesRequired') },
+          // Mobile pakai dua DatePicker terpisah → user bisa cuma isi salah satu.
+          // Custom validator memastikan dua-duanya ke-set.
+          {
+            validator: (_, v) => {
+              if (!v || !v[0] || !v[1]) return Promise.reject(new Error(t('businessTrip.datesRequired')));
+              return Promise.resolve();
+            },
+          },
+        ]}
       >
-        {/* RangePicker: memilih tanggal mulai dan selesai sekaligus */}
-        <DatePicker.RangePicker
-          className="w-full" // lebar penuh
-          format="DD MMM YYYY" // format tampilan tanggal: "20 Mei 2026"
-          classNames={{ popup: { root: 'app-date-popup single-month-panel' } }} // styling popup kalender
+        <ResponsiveRangePicker
+          className="w-full"
+          format="DD MMM YYYY"
+          popupClassName="app-date-popup single-month-panel"
+          inputReadOnly
+          mobileLabels={[t('businessTrip.labelStartDate'), t('businessTrip.labelEndDate')]}
         />
       </Form.Item>
 

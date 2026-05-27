@@ -1,18 +1,18 @@
 'use client'; // tandai sebagai Client Component agar bisa pakai useState, useEffect, dll.
 
 // ─── Import komponen UI dari Ant Design ──────────────────────────────────────
-import { App, Button, DatePicker, Form, Input, Select } from 'antd';
-// App        → context global untuk message/notification
-// Button     → tombol UI
-// DatePicker → date picker, termasuk RangePicker untuk memilih rentang tanggal
-// Form       → form dengan validasi bawaan AntD
-// Input      → input teks (dipakai untuk TextArea alasan)
-// Select     → dropdown pilihan jenis cuti
+import { App, Button, Form, Input, Select } from 'antd';
+// App     → context global untuk message/notification
+// Button  → tombol UI
+// Form    → form dengan validasi bawaan AntD
+// Input   → input teks (dipakai untuk TextArea alasan)
+// Select  → dropdown pilihan jenis cuti
 
 import { type Dayjs } from 'dayjs'; // tipe objek tanggal dari dayjs
 import { useRouter } from 'next/navigation'; // navigasi programatik (redirect setelah submit)
 import { useMemo, useState } from 'react'; // hooks React dasar
 import UploadField from '@/components/UploadField'; // komponen upload lampiran (misal surat dokter)
+import ResponsiveRangePicker from '@/components/ResponsiveRangePicker'; // Desktop: RangePicker dengan indikator partial. Mobile: dua DatePicker terpisah.
 import type { LeaveType } from '@prisma/client'; // tipe enum Prisma untuk jenis cuti
 import { useT } from '@/lib/i18n/provider'; // hook fungsi terjemahan string sesuai bahasa aktif
 
@@ -25,7 +25,21 @@ type FormValues = {
 };
 
 // Daftar semua kunci jenis cuti yang tersedia
-const TYPE_KEYS: LeaveType[] = ['ANNUAL', 'SICK', 'PERSONAL', 'MATERNITY', 'UNPAID', 'OTHER'];
+const TYPE_KEYS: LeaveType[] = [
+  'ANNUAL',
+  'SICK',
+  'PERSONAL',
+  'MARRIAGE',
+  'CHILD_MARRIAGE',
+  'CHILD_CIRCUMCISION',
+  'CHILD_BAPTISM',
+  'FAMILY_DEATH',
+  'HOUSEHOLD_DEATH',
+  'MATERNITY',
+  'MENSTRUAL',
+  'MISCARRIAGE',
+  'HAJJ',
+];
 
 // Form pengajuan cuti baru.
 // Menampilkan hitungan "total hari" secara live saat user memilih rentang tanggal.
@@ -119,15 +133,28 @@ export default function LeaveForm() {
       <Form.Item
         label={t('leave.labelDateRange')} // label: "Rentang Tanggal"
         name="dateRange"
-        rules={[{ required: true, message: t('leave.dateRequired') }]} // wajib diisi
+        rules={[
+          { required: true, message: t('leave.dateRequired') },
+          // Mobile pakai dua DatePicker terpisah → user bisa cuma isi salah satu.
+          // Custom validator memastikan dua-duanya ke-set.
+          {
+            validator: (_, v) => {
+              if (!v || !v[0] || !v[1]) return Promise.reject(new Error(t('leave.dateRequired')));
+              return Promise.resolve();
+            },
+          },
+        ]}
         // Tampilkan total hari di bawah date picker (diperbarui real-time)
         extra={days != null ? <span className="text-xs text-muted">{t('leave.totalDaysLabel', { n: days })}</span> : null}
       >
-        {/* RangePicker: memilih tanggal mulai dan selesai sekaligus */}
-        <DatePicker.RangePicker
+        {/* Desktop: RangePicker dengan indikator partial selection.
+            Mobile: dua DatePicker terpisah (1 tap = 1 pilihan). */}
+        <ResponsiveRangePicker
           className="w-full" // lebar penuh
           format="DD MMM YYYY" // format tampilan: "20 Mei 2026"
-          classNames={{ popup: { root: 'app-date-popup single-month-panel' } }} // styling popup kalender
+          popupClassName="app-date-popup single-month-panel" // styling popup kalender
+          inputReadOnly // stop virtual keyboard di mobile — tanggal dipilih via popup
+          mobileLabels={[t('leave.labelStartDate'), t('leave.labelEndDate')]}
         />
       </Form.Item>
 

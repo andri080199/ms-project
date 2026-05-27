@@ -1,10 +1,21 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import Providers from './providers';
 
 export const metadata: Metadata = {
   title: 'FIERSA',
   description: 'Finance, Integrated Employee Reimbursement System & Approval',
+};
+
+// Match iOS Safari chrome to the body's declared background-color
+// (--color-bg-base = #EEEDF2). Gradient + aurora overlays will still tint
+// the visible viewport edges slightly differently, but this is the
+// canonical base color of the design system.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#eeedf2',
 };
 
 // Root HTML shell. Providers wraps all children with session, AntD config, and i18n context.

@@ -130,6 +130,7 @@ export default function OvertimeForm() {
           className="w-full" // lebar penuh
           format="DD MMM YYYY" // format tampilan: "20 Mei 2026"
           classNames={{ popup: { root: 'app-date-popup' } }} // styling popup kalender
+          inputReadOnly // stop virtual keyboard di mobile — picker dipilih via popup
         />
       </Form.Item>
 
@@ -153,7 +154,7 @@ export default function OvertimeForm() {
         rules={[{ required: true, message: t('overtime.startTimeRequired') }]} // wajib diisi
       >
         {/* TimePicker: pilih jam dinding tempat lembur dimulai */}
-        <TimePicker className="w-full" minuteStep={1} format="HH:mm" />
+        <TimePicker className="w-full" minuteStep={1} format="HH:mm" inputReadOnly />
       </Form.Item>
 
       {/* Field: durasi lembur — HH:mm merepresentasikan jam dan menit durasi kerja, bukan jam dinding */}
@@ -164,7 +165,7 @@ export default function OvertimeForm() {
         rules={[{ required: true, message: t('overtime.durationRequired') }]} // wajib diisi
       >
         {/* showNow={false}: sembunyikan tombol "Sekarang" karena tidak relevan untuk durasi */}
-        <TimePicker className="w-full" minuteStep={1} format="HH:mm" showNow={false} />
+        <TimePicker className="w-full" minuteStep={1} format="HH:mm" showNow={false} inputReadOnly />
       </Form.Item>
 
       {/* Field: alasan lembur (min 30 karakter, max 1000 karakter) */}

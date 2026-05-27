@@ -252,6 +252,7 @@ export default function ProfileEditForm({
             format="DD MMM YYYY"
             placeholder={t('profile.pickDate')}
             classNames={{ popup: { root: 'app-date-popup' } }}
+            inputReadOnly
             suffixIcon={
               formAge != null ? (
                 <span className="text-xs text-muted">{t('profile.ageSuffixForm', { n: formAge })}</span>
@@ -265,6 +266,7 @@ export default function ProfileEditForm({
             format="DD MMM YYYY"
             placeholder={t('profile.joinDatePlaceholder')}
             classNames={{ popup: { root: 'app-date-popup' } }}
+            inputReadOnly
           />
         </Form.Item>
       </div>
@@ -341,6 +343,7 @@ export default function ProfileEditForm({
             format="DD MMM YYYY"
             placeholder={t('profile.pickDate')}
             classNames={{ popup: { root: 'app-date-popup' } }}
+            inputReadOnly
           />
         </Form.Item>
       </div>
